@@ -77,7 +77,8 @@ services/pipeline/
 - `infra/compose.yml`: services `postgres`, `llama`, `llama-cpu`, `pipeline`,
   `web`. Profiles `infra` (postgres + Vulkan llama), `cpu` (CPU llama), and
   `all`. `make infra-up` selects CPU when `/dev/dri` is unavailable.
-- `infra/pull-model.sh`: downloads GGUF and mmproj into `infra/models/` (git-ignored).
+- `infra/pull-model.sh`: downloads the selected GGUF and BF16 mmproj into
+  `infra/models/` (git-ignored), checking their Hugging Face SHA-256 values.
 - Root `Makefile` targets: `infra-up`, `infra-down`, `model-pull`, `web`,
   `pipeline`, `db-push`, `test`, `lint`, `smoke`.
 - `scripts/smoke.sh`: end-to-end check with the mock provider (see [testing.md](testing.md)).
@@ -128,6 +129,8 @@ Compose-level (`infra/.env`, consumed by `infra/compose.yml` and mapped onto the
 | Variable | Purpose |
 | --- | --- |
 | `POSTGRES_PASSWORD` | Database password; also embedded in `DATABASE_URL` for the `web` container |
+| `POSTGRES_BIND_HOST` | Host address for the development database port (default `127.0.0.1`) |
+| `LLAMA_BIND_HOST` | Host address for the inference port (default `127.0.0.1`) |
 | `PUBLIC_WEB_URL` | Externally reachable web URL, used for links in exports and QR codes |
 | `PUBLIC_PIPELINE_WS_URL` | Externally reachable ingest WebSocket URL; becomes `NEXT_PUBLIC_PIPELINE_WS_URL` |
 | `SHARED_SECRET`, `AUTH_SECRET`, `ADMIN_PASSWORD` | Passed through to `web` and `pipeline` |

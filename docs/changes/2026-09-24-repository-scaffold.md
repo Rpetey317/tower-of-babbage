@@ -9,3 +9,9 @@ Verification: `make help` and `docker compose config --quiet` pass.
 `make infra-up` selected `llama-cpu` on WSL2 and started both it and Postgres;
 `make infra-down` stopped both, and a second `make infra-up` restarted them.
 Postgres reported healthy while llama-server began its first model download.
+
+Review follow-up: development ports now bind to localhost by default, changing
+the selected llama service stops the previous one, and `model-pull` downloads
+the selected GGUF and BF16 projector with checksum verification.
+Compose configuration and synthetic CPU/Vulkan downloads passed; the real
+multi-gigabyte model download was not run in this sandbox.
