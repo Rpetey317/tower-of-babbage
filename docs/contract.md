@@ -205,8 +205,10 @@ token   = payload + "." + base64url(HMAC-SHA256(key = SHARED_SECRET, message = p
 
 Verification: constant-time signature compare, `exp` in the future,
 `sessionId` equal to the path parameter. The fixture
-`ingest-token.vector.json` holds `secret`, `payload`, `expectedToken`; both
-implementations must reproduce `expectedToken` exactly.
+`ingest-token.vector.json` holds `secret` (base64-encoded `SHARED_SECRET`),
+`payload` (the base64url string above), and `expectedToken`. Decode the secret
+to bytes before using it as the HMAC key. Both implementations must reproduce
+`expectedToken` exactly.
 
 ## 6. Error and log codes
 

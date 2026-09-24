@@ -26,7 +26,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M0-03** · pipeline · S · deps M0-01 · `done`
   Go module skeleton: `cmd/pipeline`, `internal/config` (all variables from stack.md with defaults and validation), `internal/control` with `GET /healthz`, slog JSON logging, graceful shutdown, `Dockerfile` with ffmpeg.
   Done when: `make pipeline` answers `/healthz` with the contract payload (`provider: mock` when configured); `go vet` and `staticcheck` clean; image builds.
-- **M0-04** · contract · S · deps none · `todo`
+- **M0-04** · contract · S · deps none · `done`
   Fixture files listed in [contract.md](contract.md) section 7 under `packages/contract/fixtures/`, plus `packages/contract/README.md` pointing at the doc, plus `packages/contract/tools/make-token-vector.mjs` that generates `ingest-token.vector.json`.
   Done when: every fixture validates against the shapes in the contract by inspection; the vector file contains `secret`, `payload`, `expectedToken`.
 - **M0-05** · web · S · deps M0-02, M0-04 · `todo`

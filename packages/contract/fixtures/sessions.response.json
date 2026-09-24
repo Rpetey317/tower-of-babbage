@@ -1,0 +1,18 @@
+{
+  "sessions": [
+    {
+      "sessionId": "1d953063-05b4-4cac-9249-58c8b1b326a1",
+      "runId": "5c3b3b4e-1c1e-4a2e-9f0d-9a3f5b1e2d77",
+      "status": "running",
+      "stats": {
+        "audioReceivedMs": 78400,
+        "chunksProcessed": 13,
+        "chunksDropped": 0,
+        "queueDepth": 1,
+        "latencyP50Ms": 2100,
+        "latencyP95Ms": 3900,
+        "lastError": null
+      }
+    }
+  ]
+}
