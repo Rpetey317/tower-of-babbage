@@ -1,0 +1,7 @@
+<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+	<title>Tower of Babbage</title>
+	<rect fill="#0a0a0b" height="32" rx="6" width="32" />
+	<rect fill="#3dd68c" height="4" rx="2" width="14" x="9" y="8" />
+	<rect fill="#2ac7e3" height="4" rx="2" width="20" x="6" y="14" />
+	<rect fill="#7c5cff" height="4" rx="2" width="26" x="3" y="20" />
+</svg>
