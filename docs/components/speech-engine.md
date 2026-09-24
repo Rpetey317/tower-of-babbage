@@ -144,7 +144,7 @@ original:    "[mock en] chunk 12, 72.0s-78.4s"
 translation: "[mock es] fragmento 12, 72.0s-78.4s"
 ```
 
-If a file `<replay file>.mock.txt` exists next to a `file_replay` source, its
+If a file `<replay file stem>.mock.txt` exists next to a `file_replay` source, its
 lines are used in order as transcripts instead, which makes demos readable.
 Used by `make smoke`, UI development and multi-session load tests.
 

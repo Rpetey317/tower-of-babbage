@@ -35,7 +35,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M0-06** · pipeline · S · deps M0-03, M0-04 · `done`
   Go structs in `internal/contract/` for every message, fixture round-trip test, token verification with the vector test.
   Done when: `go test ./internal/contract/...` passes.
-- **M0-07** · fixtures · S · deps none · `todo`
+- **M0-07** · fixtures · S · deps none · `done`
   `fixtures/audio/`: `en-kubernetes-60s`, `es-charla-60s` (wav 16 kHz mono, `.txt` ground truth, `.mock.txt` lines), `LICENSES.md`. Recorded or synthesized per [testing.md](testing.md).
   Done when: `ffprobe` reports 16 kHz mono s16 for each file; durations within 5 s of the nominal; licenses documented.
 - **M0-08** · infra · M · deps M0-01 · `todo`

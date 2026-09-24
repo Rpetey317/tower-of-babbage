@@ -1,0 +1,13 @@
+Welcome to this short demonstration of live captions.
+At a conference, a speaker can move quickly between everyday words and technical names.
+Today, we will use Kubernetes as an example.
+Each stage sends audio to a small pipeline.
+The pipeline groups a few seconds of speech and asks a model for a transcript and a translation.
+It sends captions to the audience page.
+Kubernetes schedules each container on a machine with enough memory.
+If one container stops, another can start without changing the public address.
+We still watch latency carefully, because a late caption is hard to follow.
+During this demo, listen for the words pod, scheduler, and translation.
+Notice the short pauses between ideas.
+Those pauses give the chunker a chance to cut the audio cleanly.
+People in the room should understand the talk as it happens, in the language they choose.
