@@ -1,0 +1,59 @@
+{
+  "contractVersion": 1,
+  "events": [
+    {
+      "type": "segment",
+      "sessionId": "1d953063-05b4-4cac-9249-58c8b1b326a1",
+      "runId": "5c3b3b4e-1c1e-4a2e-9f0d-9a3f5b1e2d77",
+      "chunkIndex": 12,
+      "kind": "original",
+      "language": "en",
+      "text": "So the scheduler places the pod on a node with enough memory.",
+      "isFinal": true,
+      "startMs": 72000,
+      "endMs": 78400,
+      "emittedAt": "2026-09-25T14:03:12.345Z",
+      "latencyMs": 2140
+    },
+    {
+      "type": "segment",
+      "sessionId": "1d953063-05b4-4cac-9249-58c8b1b326a1",
+      "runId": "5c3b3b4e-1c1e-4a2e-9f0d-9a3f5b1e2d77",
+      "chunkIndex": 12,
+      "kind": "translation",
+      "language": "es",
+      "text": "Entonces el scheduler ubica el pod en un nodo con suficiente memoria.",
+      "isFinal": true,
+      "startMs": 72000,
+      "endMs": 78400,
+      "emittedAt": "2026-09-25T14:03:12.345Z",
+      "latencyMs": 2140
+    },
+    {
+      "type": "status",
+      "sessionId": "1d953063-05b4-4cac-9249-58c8b1b326a1",
+      "runId": "5c3b3b4e-1c1e-4a2e-9f0d-9a3f5b1e2d77",
+      "status": "running",
+      "stats": {
+        "audioReceivedMs": 78400,
+        "chunksProcessed": 13,
+        "chunksDropped": 0,
+        "queueDepth": 1,
+        "latencyP50Ms": 2100,
+        "latencyP95Ms": 3900,
+        "lastError": null
+      },
+      "emittedAt": "2026-09-25T14:03:12.400Z"
+    },
+    {
+      "type": "log",
+      "sessionId": "1d953063-05b4-4cac-9249-58c8b1b326a1",
+      "runId": "5c3b3b4e-1c1e-4a2e-9f0d-9a3f5b1e2d77",
+      "level": "warn",
+      "code": "chunk_dropped",
+      "message": "queue full, dropped chunk 14",
+      "data": { "chunkIndex": 14 },
+      "emittedAt": "2026-09-25T14:03:20.000Z"
+    }
+  ]
+}
