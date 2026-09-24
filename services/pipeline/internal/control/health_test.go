@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/config"
+	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/contract"
 )
 
 func TestHealth(t *testing.T) {
@@ -25,11 +26,11 @@ func TestHealth(t *testing.T) {
 			if response.Code != http.StatusOK || response.Header().Get("Content-Type") != "application/json" {
 				t.Fatalf("unexpected response: %d %v", response.Code, response.Header())
 			}
-			var payload healthResponse
+			var payload contract.HealthResponse
 			if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
 				t.Fatal(err)
 			}
-			if payload.Status != "ok" || payload.ContractVersion != 1 || payload.Provider != test.config.Provider || payload.ActiveSessions != 0 || len(payload.Endpoints) != test.endpoints {
+			if payload.Status != "ok" || payload.ContractVersion != contract.Version || payload.Provider != test.config.Provider || payload.ActiveSessions != 0 || len(payload.Endpoints) != test.endpoints {
 				t.Fatalf("unexpected payload: %+v", payload)
 			}
 			for _, endpoint := range payload.Endpoints {

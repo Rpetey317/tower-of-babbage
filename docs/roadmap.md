@@ -32,7 +32,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M0-05** · web · S · deps M0-02, M0-04 · `done`
   Zod schemas in `src/lib/contract/` for every contract message, `contractVersion` constant, fixture round-trip test, ingest token mint and verify functions with the vector test.
   Done when: `pnpm test` passes the fixture and vector tests.
-- **M0-06** · pipeline · S · deps M0-03, M0-04 · `todo`
+- **M0-06** · pipeline · S · deps M0-03, M0-04 · `done`
   Go structs in `internal/contract/` for every message, fixture round-trip test, token verification with the vector test.
   Done when: `go test ./internal/contract/...` passes.
 - **M0-07** · fixtures · S · deps none · `todo`
