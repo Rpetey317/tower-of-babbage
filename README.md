@@ -61,12 +61,16 @@ near real time for one session on a modern CPU and comfortably on a consumer GPU
 # 1. Infrastructure: Postgres + llama-server with Gemma 4 E2B (downloads the model on first run)
 make infra-up
 
-# 2. Web app and pipeline, in two terminals
-make web        # http://localhost:3000, admin at /admin
-make pipeline   # control API on :8090
+# 2. Load the pipeline's local development settings
+cp services/pipeline/.env.example services/pipeline/.env
+set -a; . services/pipeline/.env; set +a
 
-# 3. Run everything without a model
-PROVIDER=mock make pipeline
+# 3. Web app and pipeline, in two terminals
+make web        # http://localhost:3000, admin at /admin
+make pipeline   # control API on :8090, mock provider by default from .env
+
+# To use the local model instead
+PROVIDER=openai-compat make pipeline
 ```
 
 Deployment for an event, hardware guidance and every environment variable:

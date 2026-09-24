@@ -11,7 +11,7 @@ every variable is listed in [stack.md](stack.md).
 | `postgres` | `postgres:16-alpine`, volume `pgdata` | 5432 | `infra`, `all` |
 | `llama` | `ghcr.io/ggml-org/llama.cpp:server-vulkan` (or `server-cuda`, `server` for CPU) | 8080 | `infra`, `all` |
 | `llama-cpu` | `ghcr.io/ggml-org/llama.cpp:server` | 8080 | `cpu` |
-| `pipeline` | built from `services/pipeline/Dockerfile` (distroless, includes ffmpeg) | 8090 | `all` |
+| `pipeline` | built from `services/pipeline/Dockerfile` (Debian slim, includes ffmpeg) | 8090 | `all` |
 | `web` | built from `apps/web/Dockerfile` (Next.js standalone output) | 3000 | `all` |
 
 `make infra-up` runs profile `infra` (development: web and pipeline run from
