@@ -17,7 +17,7 @@ export function resolveLocale(
 	const preferred = (acceptLanguage ?? "")
 		.split(",")
 		.map((part) => {
-			const [tag = "", weight] = part.trim().split(";q=");
+			const [tag = "", weight] = part.trim().split(/\s*;\s*q=/i);
 			return {
 				tag: tag.toLowerCase().split("-")[0],
 				quality: weight ? Number(weight) : 1,

@@ -1,6 +1,9 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
+const isProduction = process.env.NODE_ENV === "production";
+const exampleSecret = "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=";
+
 const base64Secret = z
 	.string()
 	.refine(
@@ -23,9 +26,21 @@ export const env = createEnv({
 	server: {
 		DATABASE_URL: z.string().url(),
 		DATABASE_URL_TEST: z.string().url().optional(),
-		ADMIN_PASSWORD: z.string().min(1),
-		AUTH_SECRET: base64Secret,
-		SHARED_SECRET: base64Secret,
+		ADMIN_PASSWORD: z
+			.string()
+			.min(isProduction ? 12 : 1)
+			.refine(
+				(value) => !isProduction || value !== "change-me",
+				"Replace the example ADMIN_PASSWORD in production",
+			),
+		AUTH_SECRET: base64Secret.refine(
+			(value) => !isProduction || value !== exampleSecret,
+			"Replace the example AUTH_SECRET in production",
+		),
+		SHARED_SECRET: base64Secret.refine(
+			(value) => !isProduction || value !== exampleSecret,
+			"Replace the example SHARED_SECRET in production",
+		),
 		PIPELINE_URL: httpUrl,
 		NODE_ENV: z
 			.enum(["development", "test", "production"])

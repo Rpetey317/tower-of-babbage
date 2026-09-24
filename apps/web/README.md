@@ -11,3 +11,6 @@ Then run `make web` and open `http://localhost:3000` or
 only when it can query Postgres. Run `pnpm --dir apps/web lint`,
 `pnpm --dir apps/web typecheck`, and `pnpm --dir apps/web test` to check the
 web scaffold.
+
+Before a production build, set a password of at least 12 characters and replace
+both example secrets with distinct base64-encoded values of at least 32 bytes.

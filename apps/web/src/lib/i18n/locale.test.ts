@@ -16,6 +16,7 @@ describe("resolveLocale", () => {
 	it("ignores invalid and disabled language preferences", () => {
 		expect(resolveLocale("fr", "en", "es")).toBe("en");
 		expect(resolveLocale(null, undefined, "en;q=0,es;q=0.8")).toBe("es");
+		expect(resolveLocale(null, undefined, "en-US; q=0,es;q=0.8")).toBe("es");
 		expect(resolveLocale(null, undefined, "en;q=0.2,es;q=0.9")).toBe("es");
 	});
 });
