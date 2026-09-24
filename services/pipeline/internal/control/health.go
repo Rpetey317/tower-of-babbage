@@ -6,35 +6,21 @@ import (
 	"net/http"
 
 	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/config"
+	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/contract"
 )
-
-const contractVersion = 1
-
-type endpoint struct {
-	URL     string `json:"url"`
-	Healthy bool   `json:"healthy"`
-}
-
-type healthResponse struct {
-	Status          string     `json:"status"`
-	ContractVersion int        `json:"contractVersion"`
-	Provider        string     `json:"provider"`
-	Endpoints       []endpoint `json:"endpoints"`
-	ActiveSessions  int        `json:"activeSessions"`
-}
 
 // NewHandler exposes the M0 health endpoint. Provider probes and session counts
 // are added when those components exist; unprobed endpoints report unhealthy.
 func NewHandler(cfg config.Config) http.Handler {
-	endpoints := make([]endpoint, 0)
+	endpoints := make([]contract.EndpointHealth, 0)
 	if cfg.Provider == "openai-compat" {
 		for _, address := range cfg.InferenceURLs {
-			endpoints = append(endpoints, endpoint{URL: address, Healthy: false})
+			endpoints = append(endpoints, contract.EndpointHealth{URL: address, Healthy: false})
 		}
 	}
-	response := healthResponse{
+	response := contract.HealthResponse{
 		Status:          "ok",
-		ContractVersion: contractVersion,
+		ContractVersion: contract.Version,
 		Provider:        cfg.Provider,
 		Endpoints:       endpoints,
 		ActiveSessions:  0,
