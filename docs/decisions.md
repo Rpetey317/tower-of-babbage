@@ -1,0 +1,135 @@
+# Decisions
+
+Architecture decision records, newest last. Format: context, decision,
+consequences. Append; do not rewrite history. Superseded entries get a note.
+
+## ADR-001: T3 web app plus a Go pipeline service
+
+Context. The web side (audience, admin, API, persistence) fits T3 well. The
+audio side is long-running goroutine-style work: WebSocket ingest, ffmpeg
+subprocesses, chunking, concurrent model calls, backpressure. Next.js is a poor
+host for that. The owner prefers Go after TypeScript.
+
+Decision. Monorepo with `apps/web` (T3) and `services/pipeline` (Go). They
+communicate only through the HTTP/WebSocket contract in
+[contract.md](contract.md). Shared types are hand-written on both sides and
+checked against shared JSON fixtures.
+
+Consequences. Two languages and two test suites. Contract changes need
+coordination (AGENTS.md section 5). In exchange, each side is idiomatic and can
+be developed and scaled independently. Code generation from a schema is a
+backlog item if drift becomes a problem.
+
+## ADR-002: Gemma 4 through an OpenAI-compatible sidecar
+
+Context. The brief recommends Gemini audio or Gemma for local. Research on
+2026-09-24: Gemma 4 E2B/E4B/12B have native audio input (ASR and speech
+translation, 30 s max per request); llama.cpp `llama-server` serves them with
+`input_audio` content blocks, vLLM with `audio_url`; Ollama does not support
+audio input. The demo GPU is an AMD RX 6600, so llama.cpp with Vulkan is the
+only practical local runtime.
+
+Decision. Default provider speaks OpenAI-compatible chat completions to a
+sidecar (llama-server by default, vLLM as an alternative), selected by URL and
+audio block format. No Python in the repository. Gemini is a second provider
+behind the same interface, in the backlog.
+
+Consequences. Model serving is an infrastructure concern with well-known
+tooling; swapping models or hardware does not touch application code. Real-time
+streaming ASR is not available, so the pipeline chunks audio.
+
+## ADR-003: One audio call per chunk with the AST prompt
+
+Context. Google publishes an AST prompt for Gemma 4 whose output contains the
+transcript followed by `{Target}: translation`. The alternative, ASR then a
+text translation call, costs two model calls but handles several target
+languages more naturally.
+
+Decision. `translationMode: ast` is the default: one audio call per chunk for
+the first target language, text calls for additional targets. `asr_then_text`
+remains available per session. Unparseable AST output falls back to a text
+translation call for that chunk.
+
+Consequences. Lowest latency and encoder cost for the common single-target
+case. Output parsing is a failure point, mitigated by tests over sample outputs
+and the fallback.
+
+## ADR-004: The web app is the only database writer
+
+Context. Two services could both write to Postgres, or one could own it.
+
+Decision. Only the web app touches Postgres. The pipeline pushes events to
+`/api/internal/events`; the web app persists and fans out.
+
+Consequences. One schema owner, one migration path, the pipeline stays
+stateless and easy to restart. Cost: the pipeline must buffer and retry events
+when the web app is down (bounded buffer, documented in the contract).
+
+## ADR-005: Server-Sent Events through tRPC subscriptions for delivery
+
+Context. Browsers need a one-directional stream of segments. Options:
+WebSockets (needs a custom server with Next.js), SSE (works in route handlers),
+polling.
+
+Decision. tRPC v11 subscriptions over `httpSubscriptionLink` (SSE) with
+`tracked` ids for reconnection. In-process `EventEmitter` bus on `globalThis`.
+
+Consequences. Works with a plain Next.js deployment and reverse proxies. Single
+web instance for now; Redis pub/sub swap is confined to `server/events/bus.ts`.
+
+## ADR-006: Browser mic audio goes straight to the pipeline
+
+Context. Mic audio could be relayed through the web app or sent to the pipeline.
+
+Decision. The operator page opens a WebSocket directly to the pipeline with a
+short-lived HMAC token minted by the web app.
+
+Consequences. Next.js stays out of the binary streaming path. The pipeline
+must be reachable from operator laptops (documented in deployment), and the
+token scheme is part of the contract with a cross-language test vector.
+
+## ADR-007: Postgres with Drizzle
+
+Context. SQLite would be simpler for a single-machine install, but the T3
+default tooling, multi-connection access from route handlers and tests, and
+future multi-instance web deployments favor Postgres. Docker is already
+required for llama-server.
+
+Decision. Postgres 16 in compose, Drizzle ORM with `drizzle-kit push` during
+the hackathon and generated migrations afterwards.
+
+Consequences. One more container. Straightforward path to managed Postgres.
+
+## ADR-008: Admin authentication is an environment password
+
+Context. The hackathon needs a working admin area within hours; conferences
+usually have a handful of trusted operators.
+
+Decision. `ADMIN_PASSWORD` checked at `/admin/login`, HMAC-signed HttpOnly
+cookie, `protectedProcedure` in tRPC. Better Auth with accounts and roles is a
+backlog item behind the same procedure boundary.
+
+Consequences. No user management, one shared credential; acceptable for the
+threat model of a venue network. Rotate the password per event.
+
+## ADR-009: OBS integration is a transparent web page
+
+Context. OBS, vMix and most encoders render browser sources; per-tool protocols
+(obs-websocket captions, NDI) reach fewer tools and need more code.
+
+Decision. `/overlay/[slug]` with a transparent background and URL parameters
+for layout. obs-websocket `SendStreamCaption` stays in the backlog.
+
+Consequences. Zero install for operators, one page to style. Burned-in
+captions are not available as a closed-caption track on platforms unless the
+backlog item ships.
+
+## ADR-010: Biome instead of ESLint and Prettier
+
+Context. create-t3-app offers both. Several agents will format code
+concurrently; a single fast tool with one config reduces churn.
+
+Decision. Biome for linting and formatting in `apps/web`. `gofmt` plus
+`staticcheck` in the pipeline.
+
+Consequences. Fewer plugins available than ESLint; acceptable for this codebase.
