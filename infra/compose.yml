@@ -1,0 +1,70 @@
+name: tower-of-babbage
+
+x-llama-common: &llama-common
+  command:
+    - -hf
+    - ${LLAMA_MODEL:-ggml-org/gemma-4-E2B-it-GGUF:Q8_0}
+    - --host
+    - 0.0.0.0
+    - --port
+    - "8080"
+    - --parallel
+    - ${LLAMA_PARALLEL:-4}
+    - -c
+    - ${LLAMA_CTX:-16384}
+    - -ngl
+    - ${LLAMA_NGL:-99}
+    - --jinja
+  ports:
+    - "${LLAMA_BIND_HOST:-127.0.0.1}:8080:8080"
+  volumes:
+    - llama-cache:/root/.cache/llama.cpp
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    profiles: [infra, all]
+    environment:
+      POSTGRES_USER: babbage
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in infra/.env}
+      POSTGRES_DB: babbage
+    ports:
+      - "${POSTGRES_BIND_HOST:-127.0.0.1}:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U babbage -d babbage"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  llama:
+    <<: *llama-common
+    image: ghcr.io/ggml-org/llama.cpp:server-vulkan
+    profiles: [infra, all]
+    devices:
+      - /dev/dri:/dev/dri
+    group_add: [video, render]
+
+  llama-cpu:
+    <<: *llama-common
+    image: ghcr.io/ggml-org/llama.cpp:server
+    profiles: [cpu]
+    command:
+      - -hf
+      - ${LLAMA_CPU_MODEL:-ggml-org/gemma-4-E2B-it-GGUF:Q4_0}
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --parallel
+      - "1"
+      - -c
+      - "4096"
+      - -ngl
+      - "0"
+      - --jinja
+
+volumes:
+  pgdata:
+  llama-cache:

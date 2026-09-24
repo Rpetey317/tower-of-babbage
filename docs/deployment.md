@@ -10,13 +10,21 @@ every variable is listed in [stack.md](stack.md).
 | --- | --- | --- | --- |
 | `postgres` | `postgres:16-alpine`, volume `pgdata` | 5432 | `infra`, `all` |
 | `llama` | `ghcr.io/ggml-org/llama.cpp:server-vulkan` (or `server-cuda`, `server` for CPU) | 8080 | `infra`, `all` |
+| `llama-cpu` | `ghcr.io/ggml-org/llama.cpp:server` | 8080 | `cpu` |
 | `pipeline` | built from `services/pipeline/Dockerfile` (distroless, includes ffmpeg) | 8090 | `all` |
 | `web` | built from `apps/web/Dockerfile` (Next.js standalone output) | 3000 | `all` |
 
 `make infra-up` runs profile `infra` (development: web and pipeline run from
-source). `docker compose -f infra/compose.yml --profile all up -d` runs the
-complete stack for an event. Health checks: `pg_isready`, `GET :8080/health`,
-`GET :8090/healthz`, `GET :3000/api/health`.
+source). It selects the Vulkan service when `/dev/dri` exists and otherwise
+uses the CPU service. Set `LLAMA_SERVICE=llama` or `LLAMA_SERVICE=llama-cpu`
+to override detection. Both development ports bind to `127.0.0.1` by default;
+set `LLAMA_BIND_HOST` to the GPU box's LAN address when another machine needs
+to reach inference. Change `POSTGRES_BIND_HOST` only when remote database access
+is required. Docker Desktop on WSL2 exposes AMD GPUs as `/dev/dxg`,
+which the Vulkan image cannot use, so it selects CPU. Native Linux is required
+for the RX 6600 Vulkan path. `docker compose -f infra/compose.yml --profile all
+up -d` runs the complete GPU stack for an event. Health checks: `pg_isready`,
+`GET :8080/health`, `GET :8090/healthz`, `GET :3000/api/health`.
 
 Secrets and hosts come from `infra/.env` (copied from `infra/.env.example`):
 `SHARED_SECRET`, `AUTH_SECRET`, `ADMIN_PASSWORD`, `POSTGRES_PASSWORD`,
@@ -26,8 +34,11 @@ Secrets and hosts come from `infra/.env` (copied from `infra/.env.example`):
 
 Gemma 4 E2B or E4B instruct GGUF plus the multimodal projector (`mmproj`) that
 contains the audio encoder. `-hf` downloads both from Hugging Face on first
-start into the `llama-cache` volume (`make model-pull` pre-downloads them into
-`infra/models/` for offline venues).
+start into the `llama-cache` volume. `make model-pull` downloads the selected
+model and BF16 projector into `infra/models/` and verifies their checksums;
+run `make model-pull LLAMA_SERVICE=llama` on a CPU-only host to prepare the
+Vulkan model for transfer. Compose continues to use `-hf`; an offline server
+must be pointed at the downloaded files with `-m` and `--mmproj`.
 
 ```bash
 llama-server -hf ggml-org/gemma-4-E2B-it-GGUF:Q8_0 \

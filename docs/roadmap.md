@@ -17,7 +17,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 
 ## M0: Scaffold
 
-- **M0-01** · infra · S · deps none · `todo`
+- **M0-01** · infra · S · deps none · `done`
   Repository skeleton: `pnpm-workspace.yaml`, root `package.json`, `Makefile` with the targets from [stack.md](stack.md), `.gitignore`, `.editorconfig`, `infra/compose.yml` with profile `infra` (postgres, llama Vulkan), `infra/.env.example`.
   Done when: `make infra-up` starts Postgres and llama-server (model download may still be running), `make infra-down` stops them, `make help` lists targets.
 - **M0-02** · web · M · deps M0-01 · `todo`
