@@ -35,6 +35,9 @@ Portuguese fixture for that reason.
 
 - Locales: `es` (default, `NEXT_PUBLIC_DEFAULT_LOCALE`) and `en`.
 - Selection order: `?hl=` query param, `tob_locale` cookie, `Accept-Language`, default.
+- The M0-02 header toggle sets `?hl=` while preserving the current path and query;
+  middleware stores a valid choice in `tob_locale` and passes the resolved locale
+  to the server layout.
 - Dictionaries in `apps/web/src/lib/i18n/{es,en}.ts` typed against a shared key
   type so a missing key fails type-checking. Helper `t(key, params)` on the
   server and a `useT()` hook on the client.

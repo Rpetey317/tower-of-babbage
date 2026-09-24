@@ -20,7 +20,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M0-01** · infra · S · deps none · `done`
   Repository skeleton: `pnpm-workspace.yaml`, root `package.json`, `Makefile` with the targets from [stack.md](stack.md), `.gitignore`, `.editorconfig`, `infra/compose.yml` with profile `infra` (postgres, llama Vulkan), `infra/.env.example`.
   Done when: `make infra-up` starts Postgres and llama-server (model download may still be running), `make infra-down` stops them, `make help` lists targets.
-- **M0-02** · web · M · deps M0-01 · `todo`
+- **M0-02** · web · M · deps M0-01 · `done`
   Scaffold T3 in `apps/web` (`--CI --appRouter --trpc --tailwind --drizzle --dbProvider postgres --biome`), env schema for every web variable, `/api/health`, Tailwind theme tokens and fonts from [branding.md](branding.md), empty layout with header and locale toggle.
   Done when: `pnpm dev` serves `/` and `/api/health` returns `{"status":"ok"}` against the compose database; `pnpm lint` and `pnpm typecheck` pass.
 - **M0-03** · pipeline · S · deps M0-01 · `todo`
