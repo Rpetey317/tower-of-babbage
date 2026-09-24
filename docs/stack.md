@@ -74,8 +74,9 @@ services/pipeline/
 
 ## Infra and tooling
 
-- `infra/compose.yml`: services `postgres`, `llama`, `pipeline`, `web`. Profiles
-  `infra` (postgres + llama only, for development) and `all`.
+- `infra/compose.yml`: services `postgres`, `llama`, `llama-cpu`, `pipeline`,
+  `web`. Profiles `infra` (postgres + Vulkan llama), `cpu` (CPU llama), and
+  `all`. `make infra-up` selects CPU when `/dev/dri` is unavailable.
 - `infra/pull-model.sh`: downloads GGUF and mmproj into `infra/models/` (git-ignored).
 - Root `Makefile` targets: `infra-up`, `infra-down`, `model-pull`, `web`,
   `pipeline`, `db-push`, `test`, `lint`, `smoke`.
@@ -136,6 +137,7 @@ llama-server (`infra/compose.yml` `llama` service):
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `LLAMA_MODEL` | `ggml-org/gemma-4-E2B-it-GGUF` | HF repo passed to `-hf`; or a local GGUF path with `LLAMA_MMPROJ` |
+| `LLAMA_CPU_MODEL` | `ggml-org/gemma-4-E2B-it-GGUF:Q4_0` | Smaller model used by the CPU fallback |
 | `LLAMA_PARALLEL` | `4` | Concurrent slots |
 | `LLAMA_CTX` | `16384` | Total context, shared across slots |
 | `LLAMA_NGL` | `99` | Layers offloaded to GPU |

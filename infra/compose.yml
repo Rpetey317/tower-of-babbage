@@ -1,5 +1,25 @@
 name: tower-of-babbage
 
+x-llama-common: &llama-common
+  command:
+    - -hf
+    - ${LLAMA_MODEL:-ggml-org/gemma-4-E2B-it-GGUF:Q8_0}
+    - --host
+    - 0.0.0.0
+    - --port
+    - "8080"
+    - --parallel
+    - ${LLAMA_PARALLEL:-4}
+    - -c
+    - ${LLAMA_CTX:-16384}
+    - -ngl
+    - ${LLAMA_NGL:-99}
+    - --jinja
+  ports:
+    - "8080:8080"
+  volumes:
+    - llama-cache:/root/.cache/llama.cpp
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -19,29 +39,31 @@ services:
       retries: 10
 
   llama:
+    <<: *llama-common
     image: ghcr.io/ggml-org/llama.cpp:server-vulkan
     profiles: [infra, all]
+    devices:
+      - /dev/dri:/dev/dri
+    group_add: [video, render]
+
+  llama-cpu:
+    <<: *llama-common
+    image: ghcr.io/ggml-org/llama.cpp:server
+    profiles: [cpu]
     command:
       - -hf
-      - ${LLAMA_MODEL:-ggml-org/gemma-4-E2B-it-GGUF:Q8_0}
+      - ${LLAMA_CPU_MODEL:-ggml-org/gemma-4-E2B-it-GGUF:Q4_0}
       - --host
       - 0.0.0.0
       - --port
       - "8080"
       - --parallel
-      - ${LLAMA_PARALLEL:-4}
+      - "1"
       - -c
-      - ${LLAMA_CTX:-16384}
+      - "4096"
       - -ngl
-      - ${LLAMA_NGL:-99}
+      - "0"
       - --jinja
-    devices:
-      - /dev/dri:/dev/dri
-    group_add: [video, render]
-    ports:
-      - "8080:8080"
-    volumes:
-      - llama-cache:/root/.cache/llama.cpp
 
 volumes:
   pgdata:
