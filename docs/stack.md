@@ -119,7 +119,7 @@ Pipeline (`services/pipeline/.env`):
 | `CHUNK_TARGET_SECONDS` | `6` | Preferred chunk length |
 | `CHUNK_MAX_SECONDS` | `15` | Hard cut when no pause is found; never above 30 |
 | `CHUNK_MIN_SECONDS` | `2` | Do not cut before this, even at a pause |
-| `FIXTURES_DIR` | `../../fixtures/audio` | Root for `file_replay` paths; `/fixtures` in the container |
+| `FIXTURES_DIR` | `../../fixtures/audio` | Root for `file_replay` paths; Dockerfile sets `/fixtures` in the container |
 | `EVENTS_FLUSH_MS` | `250` | Batching window for the events endpoint |
 | `LOG_LEVEL` | `info` | slog level |
 | `GEMINI_API_KEY` | none | Only for `PROVIDER=gemini` (backlog) |
