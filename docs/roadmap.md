@@ -154,7 +154,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 
 ## M6: Languages
 
-- **M6-01** · web, pipeline · M · deps M1-12, M2-03 · `todo`
+- **M6-01** · web, pipeline · M · deps M1-12, M2-03 · `done`
   `SUPPORTED_LANGUAGES` in the web app with "verified" flags, admin multi-select, Go language table, `unsupported_language` validation.
   Done when: creating `pt -> es` works; an unknown code is rejected at start with 400.
 - **M6-02** · web · M · deps M1-04 · `todo`

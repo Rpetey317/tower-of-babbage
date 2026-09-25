@@ -224,6 +224,69 @@ describe("admin.sessions", () => {
 		).rejects.toMatchObject({ code: "BAD_REQUEST" });
 	});
 
+	it("creates and starts a pt -> es session (M6-01)", async () => {
+		const caller = await adminCaller();
+		const created = await caller.admin.sessions.create({
+			title: "Palestra",
+			slug: "palestra",
+			sourceLanguage: "pt",
+			targetLanguages: ["es"],
+			sourceType: "browser_mic",
+			sourceConfig: {},
+		});
+		if (!created) throw new Error("create returned no session");
+
+		const calls = stubPipeline(202, { runId: "", status: "starting" });
+		const result = await caller.admin.sessions.start({ id: created.id });
+		expect(result.status).toBe("starting");
+		expect(calls[0]?.body.sourceLanguage).toBe("pt");
+		expect(calls[0]?.body.targetLanguages).toEqual(["es"]);
+	});
+
+	it("accepts unverified but supported languages", async () => {
+		const caller = await adminCaller();
+		const created = await caller.admin.sessions.create({
+			title: "Salle",
+			slug: "salle",
+			sourceLanguage: "fr",
+			targetLanguages: ["de", "it"],
+			sourceType: "browser_mic",
+			sourceConfig: {},
+		});
+		expect(created?.sourceLanguage).toBe("fr");
+		expect(created?.targetLanguages).toEqual(["de", "it"]);
+	});
+
+	it("rejects languages outside SUPPORTED_LANGUAGES", async () => {
+		const caller = await adminCaller();
+		const base = {
+			title: "Sala",
+			slug: "sala-xx",
+			sourceType: "browser_mic" as const,
+			sourceConfig: {},
+		};
+		await expect(
+			caller.admin.sessions.create({
+				...base,
+				sourceLanguage: "xx",
+				targetLanguages: ["es"],
+			}),
+		).rejects.toMatchObject({ code: "BAD_REQUEST" });
+		await expect(
+			caller.admin.sessions.create({
+				...base,
+				sourceLanguage: "en",
+				targetLanguages: ["es", "en-US"],
+			}),
+		).rejects.toMatchObject({ code: "BAD_REQUEST" });
+		await expect(
+			caller.admin.sessions.update({
+				id: sessionId,
+				patch: { targetLanguages: ["xx"] },
+			}),
+		).rejects.toMatchObject({ code: "BAD_REQUEST" });
+	});
+
 	it("seeds the demo sessions idempotently", async () => {
 		const caller = await adminCaller();
 		const created = await caller.admin.sessions.createDemo();

@@ -116,6 +116,7 @@ export default async function SessionPage({
 					roomColor: copy.adminFieldRoomColor,
 					sourceLanguage: copy.adminFieldSourceLanguage,
 					targetLanguages: copy.adminFieldTargetLanguages,
+					languageUnverified: copy.adminLanguageUnverified,
 					sourceType: copy.adminFieldSourceType,
 					replayPath: copy.adminFieldReplayPath,
 					replayLoop: copy.adminFieldReplayLoop,

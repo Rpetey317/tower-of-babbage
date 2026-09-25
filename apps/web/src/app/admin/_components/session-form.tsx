@@ -5,13 +5,13 @@ import { useState } from "react";
 
 import {
 	deviceBackends,
-	languages,
 	roomColorClasses,
 	roomColors,
 	slugify,
 	sourceTypes,
 	translationModes,
 } from "~/lib/admin/options";
+import { SUPPORTED_LANGUAGES } from "~/lib/languages";
 import { api } from "~/trpc/react";
 
 export interface SessionFormValues {
@@ -33,6 +33,7 @@ interface SessionFormLabels {
 	roomColor: string;
 	sourceLanguage: string;
 	targetLanguages: string;
+	languageUnverified: string;
 	sourceType: string;
 	replayPath: string;
 	replayLoop: string;
@@ -259,9 +260,10 @@ export function SessionForm({
 						onChange={(event) => setSourceLanguage(event.target.value)}
 						value={sourceLanguage}
 					>
-						{languages.map((language) => (
-							<option key={language} value={language}>
-								{language}
+						{SUPPORTED_LANGUAGES.map((language) => (
+							<option key={language.code} value={language.code}>
+								{language.code}
+								{language.verified ? "" : ` (${labels.languageUnverified})`}
 							</option>
 						))}
 					</select>
@@ -274,6 +276,9 @@ export function SessionForm({
 								<span className="w-4 text-ink-500 text-xs">{index + 1}.</span>
 								<span className="min-w-8 font-semibold text-ink-100">
 									{language}
+									{SUPPORTED_LANGUAGES.find(
+										(option) => option.code === language,
+									)?.verified === false && ` (${labels.languageUnverified})`}
 								</span>
 								<button
 									aria-label={labels.targetMoveUp}
@@ -309,20 +314,21 @@ export function SessionForm({
 						))}
 					</ol>
 					<div className="flex flex-wrap gap-1.5">
-						{languages
-							.filter((language) => !targetLanguages.includes(language))
-							.map((language) => (
-								<button
-									className="rounded-md border border-ink-700 px-2 py-1 text-ink-300 text-xs hover:border-ink-500"
-									key={language}
-									onClick={() =>
-										setTargetLanguages((current) => [...current, language])
-									}
-									type="button"
-								>
-									{labels.targetAdd} {language}
-								</button>
-							))}
+						{SUPPORTED_LANGUAGES.filter(
+							(language) => !targetLanguages.includes(language.code),
+						).map((language) => (
+							<button
+								className="rounded-md border border-ink-700 px-2 py-1 text-ink-300 text-xs hover:border-ink-500"
+								key={language.code}
+								onClick={() =>
+									setTargetLanguages((current) => [...current, language.code])
+								}
+								type="button"
+							>
+								{labels.targetAdd} {language.code}
+								{language.verified ? "" : ` (${labels.languageUnverified})`}
+							</button>
+						))}
 					</div>
 				</fieldset>
 			</div>
