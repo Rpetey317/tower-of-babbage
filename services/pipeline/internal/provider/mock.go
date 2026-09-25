@@ -44,12 +44,12 @@ func LoadMockLines(path string) ([]string, error) {
 
 func (m *Mock) Transcribe(ctx context.Context, audio WAV, req TranscribeRequest) (Transcript, error) {
 	if err := m.wait(ctx); err != nil {
-		return "", err
+		return Transcript{}, err
 	}
 	if line := m.nextLine(); line != "" {
-		return Transcript(line), nil
+		return Transcript{Text: line, Speaker: speakerFor(audio)}, nil
 	}
-	return Transcript(canned(req.SourceLanguage, "chunk", audio)), nil
+	return Transcript{Text: canned(req.SourceLanguage, "chunk", audio), Speaker: speakerFor(audio)}, nil
 }
 
 func (m *Mock) TranscribeAndTranslate(ctx context.Context, audio WAV, req ASTRequest) (ASTResult, bool, error) {
@@ -61,7 +61,7 @@ func (m *Mock) TranscribeAndTranslate(ctx context.Context, audio WAV, req ASTReq
 		transcript = canned(req.SourceLanguage, "chunk", audio)
 	}
 	return ASTResult{
-		Transcript:  transcript,
+		Transcript:  Transcript{Text: transcript, Speaker: speakerFor(audio)},
 		Translation: canned(req.TargetLanguage, "fragmento", audio),
 	}, true, nil
 }
@@ -98,6 +98,12 @@ func (m *Mock) wait(ctx context.Context) error {
 	case <-timer.C:
 		return nil
 	}
+}
+
+// speakerFor attributes chunks to speakers deterministically — two chunks
+// per label alternating S1/S2 — so UI work can exercise speaker colors.
+func speakerFor(audio WAV) string {
+	return fmt.Sprintf("S%d", audio.Index/2%2+1)
 }
 
 func canned(language, noun string, audio WAV) string {

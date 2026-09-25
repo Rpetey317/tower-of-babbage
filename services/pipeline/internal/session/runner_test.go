@@ -249,6 +249,14 @@ func TestSegmentsInOrderWithTimestamps(t *testing.T) {
 		if tr.ChunkIndex != i || tr.Kind != "translation" || tr.Language != "es" {
 			t.Fatalf("segment %d unexpected: %+v", i*2+1, tr)
 		}
+		// The mock attributes chunks to speakers in pairs: S1, S1, S2, ...
+		wantSpeaker := []string{"S1", "S1", "S2"}[i]
+		if orig.Speaker == nil || *orig.Speaker != wantSpeaker {
+			t.Fatalf("chunk %d original speaker = %v, want %q", i, orig.Speaker, wantSpeaker)
+		}
+		if tr.Speaker == nil || *tr.Speaker != *orig.Speaker {
+			t.Fatalf("chunk %d translation speaker = %v, want %v", i, tr.Speaker, *orig.Speaker)
+		}
 		if orig.StartMs != tr.StartMs || orig.EndMs != tr.EndMs {
 			t.Fatalf("translation timestamps differ from original: %+v vs %+v", tr, orig)
 		}

@@ -5,8 +5,9 @@ live in `packages/contract/fixtures/`; the Go structs (`services/pipeline/intern
 and the Zod schemas (`apps/web/src/lib/contract`) must parse all of them. See
 [AGENTS.md](../AGENTS.md) section 5 for the change procedure.
 
-`contractVersion`: **1**. Sent in every start request and events batch; a
-mismatch is rejected with `400 contract_version_mismatch`.
+`contractVersion`: **2**. Sent in every start request and events batch; a
+mismatch is rejected with `400 contract_version_mismatch`. Version 2 adds the
+optional `speaker` field on `segment` events (section 3).
 
 Conventions: JSON, camelCase, UTC ISO 8601 timestamps with milliseconds
 (`2026-09-25T14:03:12.345Z`), uuids as lowercase strings, durations in integer
@@ -33,7 +34,7 @@ No auth. Used by compose health checks and the admin dashboard.
 ```json
 {
   "status": "ok",
-  "contractVersion": 1,
+  "contractVersion": 2,
   "provider": "openai-compat",
   "endpoints": [{ "url": "http://localhost:8080", "healthy": true }],
   "activeSessions": 2
@@ -52,7 +53,7 @@ Running sessions with their latest stats (same `stats` object as the status even
 
 ```json
 {
-  "contractVersion": 1,
+  "contractVersion": 2,
   "runId": "5c3b3b4e-1c1e-4a2e-9f0d-9a3f5b1e2d77",
   "slug": "gran-sala",
   "sourceLanguage": "en",
@@ -97,7 +98,7 @@ session, dropping the oldest and logging `events_dropped`.
 
 ```json
 {
-  "contractVersion": 1,
+  "contractVersion": 2,
   "events": [
     {
       "type": "segment",
@@ -107,6 +108,7 @@ session, dropping the oldest and logging `events_dropped`.
       "kind": "original",
       "language": "en",
       "text": "So the scheduler places the pod on a node with enough memory.",
+      "speaker": "S1",
       "isFinal": true,
       "startMs": 72000,
       "endMs": 78400,
@@ -121,6 +123,7 @@ session, dropping the oldest and logging `events_dropped`.
       "kind": "translation",
       "language": "es",
       "text": "Entonces el scheduler ubica el pod en un nodo con suficiente memoria.",
+      "speaker": "S1",
       "isFinal": true,
       "startMs": 72000,
       "endMs": 78400,
@@ -156,6 +159,14 @@ session, dropping the oldest and logging `events_dropped`.
   ]
 }
 ```
+
+`segment` fields:
+
+- `speaker` (optional, v2): speaker label attributed by the provider for the
+  chunk (`S1`, `S2`, …, numbered in first-appearance order). The same label is
+  set on the chunk's `original` and `translation` segments. Absent when the
+  provider cannot attribute the chunk; labels are only stable within a chunk,
+  not across the run. Segments without `speaker` render as before.
 
 Event types:
 

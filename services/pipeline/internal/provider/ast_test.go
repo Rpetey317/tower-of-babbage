@@ -12,6 +12,7 @@ func TestParseASTOutput(t *testing.T) {
 		target           string
 		wantTranscript   string
 		wantTranslation  string
+		wantSpeaker      string
 		wantErrSubstring string
 	}{
 		{
@@ -20,6 +21,29 @@ func TestParseASTOutput(t *testing.T) {
 			target:          "es",
 			wantTranscript:  "hello world",
 			wantTranslation: "hola mundo",
+		},
+		{
+			name:            "speaker tag",
+			raw:             "S1: hello world\nSpanish: hola mundo",
+			target:          "es",
+			wantTranscript:  "hello world",
+			wantTranslation: "hola mundo",
+			wantSpeaker:     "S1",
+		},
+		{
+			name:            "speaker tag on a later speaker",
+			raw:             "S2: we move on\nSpanish: seguimos",
+			target:          "es",
+			wantTranscript:  "we move on",
+			wantTranslation: "seguimos",
+			wantSpeaker:     "S2",
+		},
+		{
+			name:            "speaker-like token without colon is kept",
+			raw:             "S1 songs are short\nSpanish: las canciones son cortas",
+			target:          "es",
+			wantTranscript:  "S1 songs are short",
+			wantTranslation: "las canciones son cortas",
 		},
 		{
 			name:            "multi-line transcript and translation",
@@ -61,6 +85,12 @@ func TestParseASTOutput(t *testing.T) {
 			wantErrSubstring: "empty transcript or translation",
 		},
 		{
+			name:             "tag only, no transcript",
+			raw:              "S1:\nSpanish: hola mundo",
+			target:           "es",
+			wantErrSubstring: "empty transcript or translation",
+		},
+		{
 			name:             "wrong language marker",
 			raw:              "hello world\nFrench: bonjour",
 			target:           "es",
@@ -79,8 +109,11 @@ func TestParseASTOutput(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if result.Transcript != test.wantTranscript || result.Translation != test.wantTranslation {
-				t.Fatalf("got %+v, want transcript %q translation %q", result, test.wantTranscript, test.wantTranslation)
+			if result.Transcript.Text != test.wantTranscript ||
+				result.Transcript.Speaker != test.wantSpeaker ||
+				result.Translation != test.wantTranslation {
+				t.Fatalf("got %+v, want transcript %q speaker %q translation %q",
+					result, test.wantTranscript, test.wantSpeaker, test.wantTranslation)
 			}
 		})
 	}

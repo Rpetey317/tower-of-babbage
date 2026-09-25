@@ -215,7 +215,7 @@ async function runScenario(bin, sink, scenario) {
 					authorization: `Bearer ${sharedSecret}`,
 				},
 				body: JSON.stringify({
-					contractVersion: 1,
+					contractVersion: 2,
 					runId,
 					slug: scenario.name,
 					sourceLanguage: "en",

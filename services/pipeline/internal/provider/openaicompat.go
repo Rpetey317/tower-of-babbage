@@ -142,13 +142,14 @@ func (o *OpenAICompat) Healthy() bool {
 func (o *OpenAICompat) Transcribe(ctx context.Context, audio WAV, req TranscribeRequest) (Transcript, error) {
 	prompt, err := ASRPrompt(req.SourceLanguage, req.Glossary)
 	if err != nil {
-		return "", err
+		return Transcript{}, err
 	}
 	content, err := o.complete(ctx, o.buildRequest(&audio, prompt))
 	if err != nil {
-		return "", err
+		return Transcript{}, err
 	}
-	return Transcript(collapseSpaces(content)), nil
+	text, speaker := splitSpeaker(collapseSpaces(content))
+	return Transcript{Text: text, Speaker: speaker}, nil
 }
 
 func (o *OpenAICompat) TranscribeAndTranslate(ctx context.Context, audio WAV, req ASTRequest) (ASTResult, bool, error) {
@@ -164,7 +165,8 @@ func (o *OpenAICompat) TranscribeAndTranslate(ctx context.Context, audio WAV, re
 	if err != nil {
 		// The raw output is kept as the transcript so the runner can emit it
 		// alone and redo the translation with a text call.
-		return ASTResult{Transcript: collapseSpaces(raw)}, false, fmt.Errorf("%w: %w", ErrBadOutput, err)
+		text, speaker := splitSpeaker(collapseSpaces(raw))
+		return ASTResult{Transcript: Transcript{Text: text, Speaker: speaker}}, false, fmt.Errorf("%w: %w", ErrBadOutput, err)
 	}
 	return result, true, nil
 }

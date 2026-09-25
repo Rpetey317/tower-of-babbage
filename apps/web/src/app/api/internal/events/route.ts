@@ -62,6 +62,7 @@ export async function POST(request: Request) {
 					kind: event.kind,
 					language: event.language,
 					text: event.text,
+					speaker: event.speaker ?? null,
 					isFinal: event.isFinal,
 					startMs: event.startMs,
 					endMs: event.endMs,
@@ -81,6 +82,7 @@ export async function POST(request: Request) {
 						set: {
 							kind: row.kind,
 							text: row.text,
+							speaker: row.speaker,
 							isFinal: row.isFinal,
 							startMs: row.startMs,
 							endMs: row.endMs,

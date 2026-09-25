@@ -77,6 +77,8 @@ export const segments = pgTable(
 		kind: segmentKindEnum().notNull(),
 		language: text().notNull(),
 		text: text().notNull(),
+		// Optional per-chunk speaker label from the provider (contract v2).
+		speaker: text(),
 		isFinal: boolean("is_final").notNull().default(true),
 		startMs: integer("start_ms").notNull(),
 		endMs: integer("end_ms").notNull(),

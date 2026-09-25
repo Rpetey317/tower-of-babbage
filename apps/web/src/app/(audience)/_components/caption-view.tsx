@@ -12,6 +12,7 @@ import {
 	type CaptionMode,
 	type CaptionSegment,
 	captionsReducer,
+	chunkSpeaker,
 	chunkText,
 	createCaptionsState,
 	resolveCaptionView,
@@ -20,6 +21,7 @@ import {
 } from "~/lib/captions";
 import { getDictionary } from "~/lib/i18n";
 import type { Locale } from "~/lib/i18n/locale";
+import { speakerName, speakerTextClass } from "~/lib/speakers";
 import { api } from "~/trpc/react";
 
 const visibleChunks = 8;
@@ -308,18 +310,23 @@ export function CaptionView({
 								return null;
 							}
 							const isNewest = index === chunks.length - 1;
+							const speaker = chunkSpeaker(chunk);
+							const accent = speaker ? speakerTextClass(speaker) : undefined;
 							return (
 								<li
 									aria-live={isNewest ? "polite" : undefined}
 									key={chunk.chunkIndex}
 								>
+									{speaker !== undefined && (
+										<p
+											className={`font-sans font-semibold text-[0.55em] uppercase tracking-widest ${accent} print:text-black`}
+										>
+											{speakerName(speaker, copy.speakerLabel)}
+										</p>
+									)}
 									{text.original !== undefined && (
 										<p
-											className={
-												text.translation !== undefined
-													? "text-ink-300 print:text-black"
-													: "text-ink-100 print:text-black"
-											}
+											className={`${accent ?? (text.translation !== undefined ? "text-ink-300" : "text-ink-100")} print:text-black`}
 											lang={session.sourceLanguage}
 										>
 											{text.original}
@@ -327,7 +334,7 @@ export function CaptionView({
 									)}
 									{text.translation !== undefined && (
 										<p
-											className="text-ink-100 print:text-black"
+											className={`${accent ?? "text-ink-100"} print:text-black`}
 											lang={language}
 										>
 											{text.translation}

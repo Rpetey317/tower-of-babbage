@@ -56,8 +56,13 @@ type WAV struct {
 	EndMs   int
 }
 
-// Transcript is recognized speech in the session's source language.
-type Transcript string
+// Transcript is recognized speech in the session's source language, with the
+// optional speaker label the provider attributed to the chunk ("S1", "S2",
+// ...; empty when the provider did not attribute the chunk).
+type Transcript struct {
+	Text    string
+	Speaker string
+}
 
 // TranscribeRequest describes one transcription call. Glossary holds session
 // terms before global ones.
@@ -79,6 +84,6 @@ type TranslateRequest struct {
 }
 
 type ASTResult struct {
-	Transcript  string
+	Transcript  Transcript
 	Translation string
 }

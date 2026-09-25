@@ -114,9 +114,9 @@ async function preflight() {
 			`pipeline at ${pipelineUrl} reports provider ${JSON.stringify(healthz?.provider)}; run it with PROVIDER=mock`,
 		);
 	}
-	if (healthz?.contractVersion !== 1) {
+	if (healthz?.contractVersion !== 2) {
 		fail(
-			`pipeline contractVersion ${JSON.stringify(healthz?.contractVersion)}, expected 1`,
+			`pipeline contractVersion ${JSON.stringify(healthz?.contractVersion)}, expected 2`,
 		);
 	}
 
@@ -303,6 +303,10 @@ function checkSegments(events) {
 	const slow = segments.find((segment) => segment.latencyMs >= maxLatencyMs);
 	if (slow) {
 		fail(`segment ${slow.chunkIndex} latencyMs ${slow.latencyMs} >= ${maxLatencyMs}`);
+	}
+	// Contract v2: the mock provider attributes every chunk to a speaker.
+	if (!segments.every((segment) => typeof segment.speaker === "string")) {
+		fail("some segments arrived without a speaker label");
 	}
 	info(
 		`${byKind.original.length} original + ${byKind.translation.length} translation segments, ` +

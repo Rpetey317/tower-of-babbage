@@ -164,11 +164,18 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
   `pt-sample-30s` fixture with ground truth; quality check `pt -> es` recorded in the issue and in [languages.md](components/languages.md).
   Done when: captions are Portuguese and Spanish respectively; WER recorded.
 
-## M7: Post-deadline extras
+## M7: Polish
 
 - **M7-01** · web · M · deps none · `done`
   Run a caption session over the audio track of a video file and provide a playback view where the video plays with its captions in sync: `/s/[slug]/play` plus `GET /api/media/[slug]` streaming the fixture from `MEDIA_DIR` with `Range` support.
   Done when: cue-selection unit tests and media route tests pass; manual run of `demo-video` tracks captions within ~1 s across pause/seek; license recorded in `fixtures/audio/LICENSES.md`. See [components/playback.md](components/playback.md).
+- **M7-02** · contract, pipeline, web · M · deps M1-12 · `done`
+  Optional `speaker` label on segment events (contract v2); providers emit
+  `S1`, `S2`, ... tags; the audience view renders a localized speaker label
+  and tints each speaker in a branding accent color.
+  Done when: fixture round-trips cover `speaker` on both sides, the mock
+  rotates speakers in pairs, speaker colors are stable and token-based, and
+  unattributed segments render unchanged.
 
 ## Backlog (after the Vibeathon)
 

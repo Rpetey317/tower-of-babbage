@@ -49,13 +49,13 @@ describe("contract fixtures", () => {
 	});
 
 	it("rejects an incompatible version and malformed event", () => {
-		expect(contractVersion).toBe(1);
+		expect(contractVersion).toBe(2);
 		const batch = fixture("events.batch.json") as {
 			contractVersion: number;
 			events: Array<Record<string, unknown>>;
 		};
 		expect(
-			eventBatchSchema.safeParse({ ...batch, contractVersion: 2 }).success,
+			eventBatchSchema.safeParse({ ...batch, contractVersion: 3 }).success,
 		).toBe(false);
 		expect(
 			eventBatchSchema.safeParse({
@@ -63,6 +63,25 @@ describe("contract fixtures", () => {
 				events: [{ ...batch.events[0], startMs: -1 }],
 			}).success,
 		).toBe(false);
+	});
+
+	it("keeps optional speaker labels and rejects an empty one", () => {
+		const batch = eventBatchSchema.parse(fixture("events.batch.json"));
+		const segments = batch.events.filter((event) => event.type === "segment");
+		expect(segments[0]?.speaker).toBe("S1");
+		expect(segments[1]?.speaker).toBe("S1");
+		expect(
+			eventBatchSchema.safeParse({
+				...batch,
+				events: [{ ...batch.events[0], speaker: "" }],
+			}).success,
+		).toBe(false);
+		expect(
+			eventBatchSchema.safeParse({
+				...batch,
+				events: [{ ...batch.events[0], speaker: undefined }],
+			}).success,
+		).toBe(true);
 	});
 });
 

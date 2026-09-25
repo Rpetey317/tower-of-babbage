@@ -110,7 +110,7 @@ func TestGeminiRequestShape(t *testing.T) {
 		requests: make(chan capturedRequest, 1),
 		replies:  make(chan string, 1),
 	}
-	handler.replies <- "hello\nSpanish: hola"
+	handler.replies <- "S1: hello\nSpanish: hola"
 	gemini := newTestGemini(t, httptest.NewServer(handler))
 
 	audio := WAV{Data: []byte("fake wav"), Index: 1}
@@ -119,7 +119,7 @@ func TestGeminiRequestShape(t *testing.T) {
 	if err != nil {
 		t.Fatalf("TranscribeAndTranslate: %v", err)
 	}
-	if !ok || result.Transcript != "hello" || result.Translation != "hola" {
+	if !ok || result.Transcript.Text != "hello" || result.Transcript.Speaker != "S1" || result.Translation != "hola" {
 		t.Fatalf("unexpected AST result: %+v (ok=%v)", result, ok)
 	}
 
@@ -232,8 +232,8 @@ func TestGeminiRetriesTransientFailures(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected retry to succeed, got %v", err)
 	}
-	if string(out) != "recovered" {
-		t.Fatalf("transcript: got %q", out)
+	if out.Text != "recovered" {
+		t.Fatalf("transcript: got %q", out.Text)
 	}
 	if handler.calls.Load() != 2 {
 		t.Fatalf("expected 2 requests, got %d", handler.calls.Load())
@@ -287,8 +287,8 @@ func TestGeminiBreakerOpensAndRecovers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("trial call should have succeeded, got %v", err)
 	}
-	if string(out) != "hello" || !gemini.Healthy() {
-		t.Fatalf("breaker did not recover: %q healthy=%v", out, gemini.Healthy())
+	if out.Text != "hello" || !gemini.Healthy() {
+		t.Fatalf("breaker did not recover: %q healthy=%v", out.Text, gemini.Healthy())
 	}
 }
 

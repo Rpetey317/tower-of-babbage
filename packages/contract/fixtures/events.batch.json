@@ -1,5 +1,5 @@
 {
-  "contractVersion": 1,
+  "contractVersion": 2,
   "events": [
     {
       "type": "segment",
@@ -9,6 +9,7 @@
       "kind": "original",
       "language": "en",
       "text": "So the scheduler places the pod on a node with enough memory.",
+      "speaker": "S1",
       "isFinal": true,
       "startMs": 72000,
       "endMs": 78400,
@@ -23,6 +24,7 @@
       "kind": "translation",
       "language": "es",
       "text": "Entonces el scheduler ubica el pod en un nodo con suficiente memoria.",
+      "speaker": "S1",
       "isFinal": true,
       "startMs": 72000,
       "endMs": 78400,

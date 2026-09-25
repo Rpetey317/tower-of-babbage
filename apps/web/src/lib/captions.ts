@@ -173,6 +173,13 @@ export function resolveCaptionView(opts: {
 	return { language, mode, languages };
 }
 
+/** Speaker label shared by a chunk's segments, when the provider attributed it. */
+export function chunkSpeaker(chunk: CaptionChunk): string | undefined {
+	return (
+		chunk.original?.speaker ?? Object.values(chunk.translations)[0]?.speaker
+	);
+}
+
 /** Text a chunk renders in the given mode, or `null` when still missing. */
 export function chunkText(opts: {
 	chunk: CaptionChunk;

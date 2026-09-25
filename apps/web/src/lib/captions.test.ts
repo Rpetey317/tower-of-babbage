@@ -4,6 +4,7 @@ import {
 	type CaptionSegment,
 	type CaptionStatus,
 	captionsReducer,
+	chunkSpeaker,
 	chunkText,
 	createCaptionsState,
 	maxChunks,
@@ -263,6 +264,37 @@ describe("resolveCaptionView", () => {
 		expect(resolveCaptionView({ ...base, lang: "en" }).languages).toEqual([
 			"en",
 		]);
+	});
+});
+
+describe("chunkSpeaker", () => {
+	it("shares the speaker across original and translations", () => {
+		const chunk = {
+			chunkIndex: 0,
+			original: segment({ speaker: "S1" }),
+			translations: {
+				es: segment({ kind: "translation", language: "es", speaker: "S1" }),
+			},
+		};
+		expect(chunkSpeaker(chunk)).toBe("S1");
+	});
+
+	it("falls back to the translation and stays undefined when unattributed", () => {
+		expect(
+			chunkSpeaker({
+				chunkIndex: 0,
+				translations: {
+					es: segment({ kind: "translation", language: "es", speaker: "S2" }),
+				},
+			}),
+		).toBe("S2");
+		expect(
+			chunkSpeaker({
+				chunkIndex: 0,
+				original: segment(),
+				translations: {},
+			}),
+		).toBeUndefined();
 	});
 });
 

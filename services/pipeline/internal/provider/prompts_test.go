@@ -28,7 +28,8 @@ func TestASRPrompt(t *testing.T) {
 			source: "en",
 			want: "Transcribe the following speech segment in English into English text.\n\n" +
 				"Follow these specific instructions for formatting the answer:\n" +
-				"* Only output the transcription, with no newlines.\n" +
+				"* Prefix the output with a speaker tag ('S1: ', 'S2: ', ...), numbering each distinct voice in the order it first speaks.\n" +
+				"* Only output the tagged transcription, with no newlines.\n" +
 				"* When transcribing numbers, write the digits, i.e. write 1.7 and not one point seven, and write 3 instead of three.",
 		},
 		{
@@ -41,7 +42,8 @@ func TestASRPrompt(t *testing.T) {
 			},
 			want: "Transcribe the following speech segment in Spanish into Spanish text.\n\n" +
 				"Follow these specific instructions for formatting the answer:\n" +
-				"* Only output the transcription, with no newlines.\n" +
+				"* Prefix the output with a speaker tag ('S1: ', 'S2: ', ...), numbering each distinct voice in the order it first speaks.\n" +
+				"* Only output the tagged transcription, with no newlines.\n" +
 				"* When transcribing numbers, write the digits, i.e. write 1.7 and not one point seven, and write 3 instead of three.\n" +
 				"Technical terms and proper names that may appear. Spell them exactly as written: Kubernetes.\n" +
 				"Translate these terms as indicated: pull request -> pull request; deployment -> despliegue.",
@@ -66,7 +68,7 @@ func TestASTPrompt(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := "Transcribe the following speech segment in English, then translate it into Spanish.\n" +
-		"When formatting the answer, first output the transcription in English, then one newline, then output the string 'Spanish: ', then the translation in Spanish.\n" +
+		"When formatting the answer, first output the speaker tag ('S1', 'S2', ... numbering each distinct voice in the order it appears), then a colon and a space, then the transcription in English, then one newline, then output the string 'Spanish: ', then the translation in Spanish.\n" +
 		"Technical terms and proper names that may appear. Spell them exactly as written: Nerdearla."
 	if got != want {
 		t.Fatalf("prompt mismatch\ngot:\n%s\nwant:\n%s", got, want)

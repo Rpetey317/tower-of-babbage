@@ -28,7 +28,8 @@ type SpeechProvider interface {
 type TranscribeRequest struct { SourceLanguage string; Glossary []GlossaryTerm }
 type ASTRequest       struct { SourceLanguage, TargetLanguage string; Glossary []GlossaryTerm }
 type TranslateRequest struct { SourceLanguage, TargetLanguage string; Glossary []GlossaryTerm }
-type ASTResult        struct { Transcript, Translation string }
+type Transcript       struct { Text, Speaker string }
+type ASTResult        struct { Transcript Transcript; Translation string }
 ```
 
 ## Translation modes
@@ -128,7 +129,8 @@ ASR (`Transcribe`):
 Transcribe the following speech segment in {Source} into {Source} text.
 
 Follow these specific instructions for formatting the answer:
-* Only output the transcription, with no newlines.
+* Prefix the output with a speaker tag ('S1: ', 'S2: ', ...), numbering each distinct voice in the order it first speaks.
+* Only output the tagged transcription, with no newlines.
 * When transcribing numbers, write the digits, i.e. write 1.7 and not one point seven, and write 3 instead of three.
 {glossary block}
 ```
@@ -137,13 +139,18 @@ AST (`TranscribeAndTranslate`):
 
 ```
 Transcribe the following speech segment in {Source}, then translate it into {Target}.
-When formatting the answer, first output the transcription in {Source}, then one newline, then output the string '{Target}: ', then the translation in {Target}.
+When formatting the answer, first output the speaker tag ('S1', 'S2', ... numbering each distinct voice in the order it appears), then a colon and a space, then the transcription in {Source}, then one newline, then output the string '{Target}: ', then the translation in {Target}.
 {glossary block}
 ```
 
 Parsing: split on the first line that starts with `{Target}:`; the part before
 is the transcript, the remainder is the translation. Both are trimmed and
-newlines collapsed to spaces.
+newlines collapsed to spaces. A leading `S<n>:` tag on the transcript is the
+chunk's speaker label (`Transcript.Speaker`, empty when absent); it travels to
+the audience as `speaker` on the segment events of the chunk's original and
+its translations ([contract](../contract.md) v2). The tag is a best-effort
+attribution within one chunk — the model does not see previous chunks, so the
+same voice may get different labels across a session.
 
 Text translation (`Translate`):
 
@@ -173,6 +180,9 @@ No model. Returns deterministic text after `MOCK_LATENCY_MS` (default 300):
 original:    "[mock en] chunk 12, 72.0s-78.4s"
 translation: "[mock es] fragmento 12, 72.0s-78.4s"
 ```
+
+Chunks are attributed to speakers in pairs — `S1, S1, S2, S2, ...` by chunk
+index — so the audience view exercises speaker colors deterministically.
 
 If a file `<replay file stem>.mock.txt` exists next to a `file_replay` source, its
 lines are used in order as transcripts instead, which makes demos readable.

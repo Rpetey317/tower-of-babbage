@@ -19,7 +19,7 @@ func ASRPrompt(sourceCode string, glossary []contract.GlossaryTerm) (string, err
 		return "", err
 	}
 	return joinLines(
-		fmt.Sprintf("Transcribe the following speech segment in %s into %s text.\n\nFollow these specific instructions for formatting the answer:\n* Only output the transcription, with no newlines.\n* When transcribing numbers, write the digits, i.e. write 1.7 and not one point seven, and write 3 instead of three.", source, source),
+		fmt.Sprintf("Transcribe the following speech segment in %s into %s text.\n\nFollow these specific instructions for formatting the answer:\n* Prefix the output with a speaker tag ('S1: ', 'S2: ', ...), numbering each distinct voice in the order it first speaks.\n* Only output the tagged transcription, with no newlines.\n* When transcribing numbers, write the digits, i.e. write 1.7 and not one point seven, and write 3 instead of three.", source, source),
 		glossaryBlock(glossary),
 	), nil
 }
@@ -35,7 +35,7 @@ func ASTPrompt(sourceCode, targetCode string, glossary []contract.GlossaryTerm) 
 		return "", err
 	}
 	return joinLines(
-		fmt.Sprintf("Transcribe the following speech segment in %s, then translate it into %s.\nWhen formatting the answer, first output the transcription in %s, then one newline, then output the string '%s: ', then the translation in %s.", source, target, source, target, target),
+		fmt.Sprintf("Transcribe the following speech segment in %s, then translate it into %s.\nWhen formatting the answer, first output the speaker tag ('S1', 'S2', ... numbering each distinct voice in the order it appears), then a colon and a space, then the transcription in %s, then one newline, then output the string '%s: ', then the translation in %s.", source, target, source, target, target),
 		glossaryBlock(glossary),
 	), nil
 }

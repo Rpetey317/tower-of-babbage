@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const contractVersion = 1 as const;
+export const contractVersion = 2 as const;
 
 const uuid = z
 	.string()
@@ -136,6 +136,8 @@ export const segmentEventSchema = z
 		kind: z.enum(["original", "translation"]),
 		language,
 		text: z.string(),
+		// Optional per-chunk speaker label attributed by the provider (v2).
+		speaker: z.string().min(1).optional(),
 		isFinal: z.boolean(),
 		startMs: milliseconds,
 		endMs: milliseconds,
