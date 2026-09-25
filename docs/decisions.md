@@ -160,3 +160,25 @@ model download or sidecar. Latency now includes a network round trip and is
 bounded by API rate limits rather than VRAM. Audio leaves the venue's hardware
 for inference, which the local path avoids. `INFERENCE_URLS` and
 `INFERENCE_AUDIO_FORMAT` apply only to the local provider.
+
+## ADR-012: One shared provider scheduler for all sessions
+
+Context. M1-11 gave every session runner a private `INFERENCE_MAX_CONCURRENCY`
+semaphore, so N sessions multiplied provider load by N and no fairness existed
+between sessions; each idle runner also spun its dispatch loop on the
+always-ready semaphore. M2-01 needs concurrent sessions sharing one provider
+budget.
+
+Decision. The session registry owns a single scheduler goroutine holding the
+`INFERENCE_MAX_CONCURRENCY` budget for the whole pipeline. It pops chunks
+round-robin over the runners' queues and spawns short-lived workers that
+deliver results on each runner's buffered channel; runners keep per-session
+ordering, emission, heartbeat and stats. `Registry.Shutdown` stops all runs
+in parallel for process teardown.
+
+Consequences. `INFERENCE_MAX_CONCURRENCY` now means in-flight provider calls
+across all sessions combined, not per session — matching what Gemini rate
+limits and llama-server `--parallel` actually bound. Idle pipelines consume
+no CPU in scheduling. Run ordering is still guaranteed per session by the
+runner's outstanding-index tracker; the scheduler only chooses which session
+gets the next slot.

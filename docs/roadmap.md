@@ -106,7 +106,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 
 ## M2: Many sessions and monitoring
 
-- **M2-01** · pipeline · M · deps M1-11 · `todo`
+- **M2-01** · pipeline · M · deps M1-11 · `done`
   Concurrent runners sharing provider capacity: per-session isolation, fair scheduling across sessions (round-robin over session queues), clean shutdown of many sessions.
   Done when: test with 4 mock sessions shows all progressing, no goroutine leaks (`goleak`), stats independent per session.
 - **M2-02** · web · L · deps M1-05, M1-03 · `todo`

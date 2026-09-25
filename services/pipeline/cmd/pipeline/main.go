@@ -78,6 +78,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		if err := <-serveDone; err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return err
 		}
+		registry.Shutdown()
 		events.Close()
 		logger.Info("pipeline stopped")
 		return nil

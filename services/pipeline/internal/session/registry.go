@@ -47,7 +47,7 @@ type Events interface {
 type Config struct {
 	FixturesDir    string
 	Chunk          chunk.Config
-	MaxConcurrency int           // provider calls in flight per runner
+	MaxConcurrency int           // provider calls in flight across all runners (shared)
 	StatusInterval time.Duration // defaults to statusHeartbeat
 	NoAudioAfter   time.Duration // defaults to noAudioAfter
 	Now            func() time.Time
@@ -80,6 +80,10 @@ func (e *AlreadyRunningError) Error() string {
 // NotRunningError reports a stop or lookup with no active run.
 var ErrNotRunning = errors.New("not_running")
 
+// ErrShuttingDown reports a start racing with Registry.Shutdown; the run is
+// rejected rather than left to linger without anyone able to stop it.
+var ErrShuttingDown = errors.New("shutting_down")
+
 // InvalidSourceError reports a source type the pipeline cannot produce
 // frames for; the control API maps it to 400 invalid_source.
 type InvalidSourceError struct{ Type string }
@@ -89,36 +93,49 @@ func (e *InvalidSourceError) Error() string {
 }
 
 // Registry tracks the active run per session and implements ingest.Sessions
-// so the WebSocket handler can resolve producers.
+// so the WebSocket handler can resolve producers. It owns the shared
+// scheduler and the base context every run derives from.
 type Registry struct {
 	cfg      Config
 	provider provider.SpeechProvider
 	events   Events
 	logger   *slog.Logger
+	sched    *scheduler
 
-	mu   sync.Mutex
-	runs map[string]*Runner
+	ctx    context.Context
+	cancel context.CancelFunc
+	once   sync.Once
+
+	mu     sync.Mutex
+	runs   map[string]*Runner
+	closed bool
 }
 
-// NewRegistry returns an empty registry. provider may be swapped per start in
-// tests through StartWithProvider.
+// NewRegistry returns an empty registry with its shared scheduler running.
 func NewRegistry(cfg Config, p provider.SpeechProvider, events Events, logger *slog.Logger) *Registry {
 	if logger == nil {
 		logger = slog.Default()
 	}
+	cfg = cfg.withDefaults()
+	ctx, cancel := context.WithCancel(context.Background())
 	return &Registry{
-		cfg:      cfg.withDefaults(),
+		cfg:      cfg,
 		provider: p,
 		events:   events,
 		logger:   logger,
+		sched:    newScheduler(ctx, cfg.MaxConcurrency),
+		ctx:      ctx,
+		cancel:   cancel,
 		runs:     make(map[string]*Runner),
 	}
 }
 
 // Start validates the request's source, spawns a Runner and registers it.
 // Idempotent for the same runId (contract section 2): a repeated start with
-// the current runId returns the existing runner.
-func (r *Registry) Start(ctx context.Context, sessionID string, req contract.SessionStartRequest) (*Runner, error) {
+// the current runId returns the existing runner. The run derives its context
+// from the registry, not from ctx, so a caller's request scope cannot kill a
+// live run.
+func (r *Registry) Start(_ context.Context, sessionID string, req contract.SessionStartRequest) (*Runner, error) {
 	r.mu.Lock()
 	if active, ok := r.runs[sessionID]; ok {
 		defer r.mu.Unlock()
@@ -134,21 +151,26 @@ func (r *Registry) Start(ctx context.Context, sessionID string, req contract.Ses
 		return nil, err
 	}
 	var runner *Runner
-	runner = newRunner(sessionID, req, r.cfg, r.provider, r.events, source, r.logger, func() {
+	runner = newRunner(r.ctx, sessionID, req, r.cfg, r.provider, r.events, source, r.sched, r.logger, func() {
 		r.mu.Lock()
 		if r.runs[sessionID] == runner {
 			delete(r.runs, sessionID)
 		}
 		r.mu.Unlock()
+		r.sched.remove(runner)
 	})
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if r.closed {
+		return nil, ErrShuttingDown
+	}
 	if active, ok := r.runs[sessionID]; ok {
 		return nil, &AlreadyRunningError{RunID: active.RunID()}
 	}
 	r.runs[sessionID] = runner
-	go runner.run(ctx)
+	r.sched.add(runner)
+	go runner.run()
 	return runner, nil
 }
 
@@ -185,6 +207,29 @@ func (r *Registry) Stop(sessionID, runID string) error {
 	}
 	runner.Stop()
 	return nil
+}
+
+// Shutdown winds every active run down in parallel — each flushes its tail,
+// drains its queue through the scheduler and ends idle — then stops the
+// scheduler. For process teardown; safe to call more than once.
+func (r *Registry) Shutdown() {
+	r.once.Do(func() {
+		r.mu.Lock()
+		r.closed = true
+		runners := make([]*Runner, 0, len(r.runs))
+		for _, runner := range r.runs {
+			runners = append(runners, runner)
+		}
+		r.mu.Unlock()
+		for _, runner := range runners {
+			runner.beginStop()
+		}
+		for _, runner := range runners {
+			runner.waitDone()
+		}
+		r.cancel()
+		r.sched.close()
+	})
 }
 
 // Lookup implements ingest.Sessions.
