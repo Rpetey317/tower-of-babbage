@@ -5,6 +5,7 @@ The two scripts (`.txt`) and mock transcripts (`.mock.txt`) were written for thi
 | WAV file | Piper voice (release `v1.0.0`) | Voice training data and attribution |
 | --- | --- | --- |
 | `en-kubernetes-60s.wav` | [`en_US-ljspeech-medium`](https://huggingface.co/rhasspy/piper-voices/tree/v1.0.0/en/en_US/ljspeech/medium) | [LJ Speech](https://keithito.com/LJ-Speech-Dataset/), public domain; voice model trained by Bryce Beattie according to its model card. |
+| `en-glossary-30s.wav` | [`en_US-ljspeech-medium`](https://huggingface.co/rhasspy/piper-voices/tree/v1.0.0/en/en_US/ljspeech/medium) | Same as `en-kubernetes-60s.wav` above. |
 | `es-charla-60s.wav` | [`es_AR-daniela-high`](https://huggingface.co/rhasspy/piper-voices/tree/v1.0.0/es/es_AR/daniela/high) | [OpenSLR SLR61](https://www.openslr.org/61/) Argentinian Spanish recordings, CC BY-SA 4.0, copyright 2018–2019 Google Inc.; voice model trained by [larcanio](https://huggingface.co/larcanio/piper-voices) according to its model card. |
 
 The [Piper voice collection](https://huggingface.co/rhasspy/piper-voices) is MIT licensed. Audio was generated with Piper `1.8.0` on CPU using `--sentence-silence 0.25`, then converted from 22,050 Hz to mono 16 kHz signed 16-bit PCM with FFmpeg. No source recordings or model weights are included here. To regenerate a fixture after downloading its voice model and matching `.onnx.json` file, run:

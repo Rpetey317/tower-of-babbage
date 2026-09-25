@@ -47,6 +47,25 @@ Letters, digits and `_` count as word characters, so `kubectlx` or
 `my_kubectl` stay untouched. Useful when the model keeps mangling a name;
 risky for short terms, hence off by default.
 
+## Measured results (M4-03)
+
+Replayed `fixtures/audio/en-glossary-30s.wav` (says `kubectl`, `etcd`,
+`Nerdearla` several times each) through the Gemini provider with
+`scripts/glossary-quality.mjs`; full numbers in issue #33.
+
+| Glossary | WER | Effect |
+| --- | --- | --- |
+| none | 8.57% | `etcd` → "it could"/"it", `Nerdearla` → "Nerdio" |
+| terms in prompt | 1.43% | every term spelled correctly |
+| prompt + `GLOSSARY_ENFORCE` | 1.43% | identical output |
+
+The prompt block alone fixed every misspelling, so `GLOSSARY_ENFORCE`
+stays off by default: the failures it can repair (case variants) never
+occurred, and word-swap replacements stay risky for short terms. An
+absent-term glossary on `en-kubernetes-60s.wav` changed nothing (0.66%
+WER both ways, no leaked terms) but roughly doubled segment latency —
+prompt tokens are paid on every chunk, which is why the cap exists.
+
 ## Verification
 
 - Vitest: merge, dedupe and cap logic in `admin.sessions.start`.
@@ -54,6 +73,6 @@ risky for short terms, hence off by default.
   term, and 60 terms (capped at 40); `PUT /v1/sessions/{id}/glossary` handler
   tests; runner test showing the next chunk's provider call uses the new list;
   `EnforceGlossary` table tests for whole-word behaviour.
-- Manual: replay `fixtures/audio/en-kubernetes-60s.wav` with and without a
-  glossary containing `kubectl`, `etcd`, `Nerdearla`; compare spellings in the
-  exported TXT.
+- Manual: `node scripts/glossary-quality.mjs` replays the fixtures with and
+  without the glossary and writes transcripts plus a WER report
+  (`en-glossary-30s.wav` exercises `kubectl`, `etcd`, `Nerdearla`).

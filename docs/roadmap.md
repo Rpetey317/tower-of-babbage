@@ -139,7 +139,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M4-02** · pipeline · S · deps M1-12 · `done`
   `PUT /v1/sessions/{id}/glossary` replacing the active glossary for later chunks; optional `GLOSSARY_ENFORCE` post-replacement.
   Done when: handler test; runner test shows the next prompt uses the new list; replacement test for whole-word behaviour.
-- **M4-03** · infra · S · deps M4-01, M1-14 · `todo`
+- **M4-03** · infra · S · deps M4-01, M1-14 · `done`
   Quality check: replay the English fixture with and without a glossary containing `kubectl`, `etcd`, `Nerdearla`; record spellings and WER in the issue; decide whether `GLOSSARY_ENFORCE` should default on.
   Done when: results recorded in the issue and summarized in [glossary.md](components/glossary.md).
 
