@@ -9,6 +9,8 @@ export default defineConfig({
 		},
 	},
 	test: {
+		// Tests share one database; files must not run concurrently.
+		fileParallelism: false,
 		// Route tests run against a dedicated database (see docs/testing.md).
 		env: {
 			DATABASE_URL:

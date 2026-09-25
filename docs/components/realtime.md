@@ -49,8 +49,9 @@ The subscription uses tRPC v11 `httpSubscriptionLink` and `tracked(id, data)`
 with `id = "<runId>:<chunkIndex>:<language>"`. On reconnect the client sends
 `lastEventId`; the server first yields segments from the database with a higher
 `chunkIndex` in the same run, then attaches to the bus. A run change (new
-`runId`) is signaled by a `status` item in the same stream so the client can
-clear its view. SSE keepalive ping every 15 s.
+`runId`) is signaled by a `status` item in the same stream (id
+`<runId>:status`, which catch-up parses as "replay the run from the start") so
+the client can clear its view. SSE keepalive ping every 15 s.
 
 Router `admin` (protected) adds `onStatus()` streaming `status` and `log`
 events for all sessions to the monitoring view; see

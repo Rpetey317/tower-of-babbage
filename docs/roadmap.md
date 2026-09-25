@@ -57,7 +57,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M1-02** · web · M · deps M1-01, M0-05 · `done`
   `POST /api/internal/events` per [realtime.md](components/realtime.md): bearer check, Zod, atomic transaction, segment upsert, status application, log insert, bus publish; watchdog for `status_timeout`.
   Done when: route tests cover valid batch, bad bearer, malformed event, duplicate segment (single row), watchdog flips a stale session to `error`.
-- **M1-03** · web · M · deps M1-02 · `todo`
+- **M1-03** · web · M · deps M1-02 · `done`
   `server/events/bus.ts`, routers `sessions` (`list`, `bySlug`) and `segments` (`recent`, `onSegment` SSE with `tracked` ids and catch-up).
   Done when: unit tests for id encoding and catch-up; `curl -N` on the subscription prints events published through the events endpoint.
 - **M1-04** · web · L · deps M1-03 · `todo`
