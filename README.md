@@ -113,7 +113,8 @@ docs/               design docs, roadmap, decisions
 
 ## Documentation
 
-Start at [docs/README.md](docs/README.md). Agents and contributors: read
+Start at [docs/README.md](docs/README.md). Evaluators: [DEMO.md](DEMO.md) is a
+guided tour of six demo scenarios. Agents and contributors: read
 [AGENTS.md](AGENTS.md) first, then pick a task from
 [docs/roadmap.md](docs/roadmap.md).
 
