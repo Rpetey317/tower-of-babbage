@@ -32,11 +32,15 @@ only practical local runtime.
 Decision. Default provider speaks OpenAI-compatible chat completions to a
 sidecar (llama-server by default, vLLM as an alternative), selected by URL and
 audio block format. No Python in the repository. Gemini is a second provider
-behind the same interface, in the backlog.
+behind the same interface.
 
 Consequences. Model serving is an infrastructure concern with well-known
 tooling; swapping models or hardware does not touch application code. Real-time
 streaming ASR is not available, so the pipeline chunks audio.
+
+Superseded in part by ADR-011: the demo and MVP run on the Gemini API instead
+of the local sidecar. The OpenAI-compatible path remains for self-hosted
+deployments.
 
 ## ADR-003: One audio call per chunk with the AST prompt
 
@@ -133,3 +137,26 @@ Decision. Biome for linting and formatting in `apps/web`. `gofmt` plus
 `staticcheck` in the pipeline.
 
 Consequences. Fewer plugins available than ESLint; acceptable for this codebase.
+
+## ADR-011: Gemini as the demo and MVP speech provider
+
+Context. The owner decided on 2026-09-25 to run the Vibeathon demo and the MVP
+over a cloud model: the Gemini API. The brief recommends Gemini audio in the
+first place; the local-first choice (ADR-002) had been made to satisfy the
+"100% local" option, but running Gemma 4 needs a GPU the demo timeline cannot
+guarantee. The provider interface was already designed so that backends are
+interchangeable by configuration.
+
+Decision. `PROVIDER=gemini` is the demo and MVP inference path: the pipeline
+calls the Gemini `generateContent` API with the chunk WAV as `inlineData`,
+authenticated by `GEMINI_API_KEY`, model selected by `GEMINI_MODEL`. The same
+ASR/AST/translate prompts are sent. The local path (`openaicompat` against
+llama-server or vLLM serving Gemma 4) remains documented and becomes the
+self-hosted deployment option; its implementation tasks (M0-08, M1-10) leave
+the critical path.
+
+Consequences. The demo needs only outbound internet and an API key; no GPU,
+model download or sidecar. Latency now includes a network round trip and is
+bounded by API rate limits rather than VRAM. Audio leaves the venue's hardware
+for inference, which the local path avoids. `INFERENCE_URLS` and
+`INFERENCE_AUDIO_FORMAT` apply only to the local provider.

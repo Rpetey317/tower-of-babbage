@@ -13,7 +13,7 @@ exists.
 | Web logic | Vitest | Export (golden files), chunk-merging reducer, cookie signing, locale resolution, dictionary parity, Zod schemas |
 | Route handlers | Vitest with a test database (`DATABASE_URL_TEST`) | Events endpoint (auth, atomic batch, upsert), export route, health |
 | End to end | `scripts/smoke.sh` | Replay -> pipeline (mock) -> web -> SSE -> export, without a model |
-| Model quality | `scripts/transcribe-file.sh`, `scripts/wer.mjs` | Manual, per language pair, against fixture ground truth |
+| Model quality | `scripts/transcribe-file.sh` (local path; a Gemini variant ships with the provider task), `scripts/wer.mjs` | Manual, per language pair, against fixture ground truth |
 | Performance | `scripts/bench-latency.sh` | Latency percentiles for N parallel sessions on real hardware |
 | UI | Manual checklists in component docs; Playwright in the backlog | Audience, admin, overlay |
 
@@ -64,8 +64,9 @@ end-to-end path.
 ## Model checks
 
 - `scripts/transcribe-file.sh <wav> [source] [target]`: cuts the first 10 s,
-  sends one AST request to `INFERENCE_URLS`, prints the raw model output and
-  the parsed transcript and translation. First thing to run on a new machine.
+  sends one AST request to `INFERENCE_URLS` (local path), prints the raw model
+  output and the parsed transcript and translation. First thing to run on a
+  new machine. The Gemini variant does the same against `GEMINI_API_KEY`.
 - `scripts/wer.mjs <exported.txt> <ground-truth.txt>`: word error rate after
   lowercasing and stripping punctuation. Not a gate; recorded in the roadmap
   task notes when tuning chunk sizes or prompts.
@@ -75,7 +76,7 @@ end-to-end path.
 `scripts/bench-latency.sh <sessions> [seconds]` seeds `<sessions>` replay
 sessions with `loop: true`, runs them for the given time (default 120 s), then
 queries `segments` for p50/p95 `latencyMs`, `chunksDropped` and throughput per
-session, and prints a table. Run it on the demo box with 1, 2 and 4 sessions to
+session, and prints a table. Run it on the demo machine with 1, 2 and 4 sessions to
 fill the capacity table in [deployment.md](deployment.md).
 
 ## Conventions
