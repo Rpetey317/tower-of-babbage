@@ -1,14 +1,16 @@
 import { randomUUID } from "node:crypto";
 
 import { TRPCError, tracked } from "@trpc/server";
-import { asc, desc, eq, isNull, or } from "drizzle-orm";
+import { asc, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 
 import { env } from "~/env";
+import { mergeGlossary, parseBulkPaste } from "~/lib/admin/glossary";
 import { deviceBackends, roomColors, sourceTypes } from "~/lib/admin/options";
 import {
 	contractVersion,
 	type Event,
+	glossaryUpdateRequestSchema,
 	healthResponseSchema,
 	sessionStartRequestSchema,
 	sessionStopRequestSchema,
@@ -94,10 +96,15 @@ const sessionInputSchema = sessionInputObject.superRefine(checkSourceConfig);
 
 type Session = typeof sessions.$inferSelect;
 
-/** Session glossary terms first, then global ones (sessionId null). */
-async function mergedGlossary(sessionId: string) {
-	const terms = await db
+/**
+ * Effective glossary for a session: its own terms followed by the global
+ * ones, deduplicated and capped per docs/components/glossary.md. Exported for
+ * the session page's read-only preview.
+ */
+export async function mergedGlossary(sessionId: string) {
+	const rows = await db
 		.select({
+			sessionId: glossaryTerms.sessionId,
 			term: glossaryTerms.term,
 			translation: glossaryTerms.translation,
 		})
@@ -108,8 +115,11 @@ async function mergedGlossary(sessionId: string) {
 				isNull(glossaryTerms.sessionId),
 			),
 		)
-		.orderBy(asc(glossaryTerms.sessionId), asc(glossaryTerms.createdAt));
-	return terms;
+		.orderBy(asc(glossaryTerms.createdAt), asc(glossaryTerms.id));
+	return mergeGlossary(
+		rows.filter((row) => row.sessionId === sessionId),
+		rows.filter((row) => row.sessionId === null),
+	);
 }
 
 function toStartRequest(
@@ -129,12 +139,13 @@ function toStartRequest(
 	});
 }
 
-async function postPipeline(
+async function callPipeline(
+	method: "POST" | "PUT",
 	path: string,
 	body: unknown,
 ): Promise<{ ok: boolean; status: number; detail: string }> {
 	const response = await fetch(`${env.PIPELINE_URL}${path}`, {
-		method: "POST",
+		method,
 		headers: {
 			authorization: `Bearer ${env.SHARED_SECRET}`,
 			"content-type": "application/json",
@@ -143,6 +154,74 @@ async function postPipeline(
 	});
 	const detail = await response.text().catch(() => "");
 	return { ok: response.ok, status: response.status, detail };
+}
+
+const postPipeline = (path: string, body: unknown) =>
+	callPipeline("POST", path, body);
+const putPipeline = (path: string, body: unknown) =>
+	callPipeline("PUT", path, body);
+
+/** Statuses whose active run can accept a glossary replacement. */
+const liveStatuses: (typeof sessions.$inferSelect.status)[] = [
+	"starting",
+	"running",
+];
+
+/**
+ * Pushes the merged glossary to the pipeline so later chunks of the active
+ * run use it (`PUT /v1/sessions/{id}/glossary`, contract section 2). Best
+ * effort: the endpoint may be missing (M4-02) or the run may have ended; the
+ * stored terms still apply on the next start. Returns whether a push was
+ * needed and succeeded: "ok" | "failed" | "skipped".
+ */
+async function syncRunningGlossary(
+	sessionId: string,
+): Promise<"ok" | "failed" | "skipped"> {
+	const [session] = await db
+		.select({ status: sessions.status })
+		.from(sessions)
+		.where(eq(sessions.id, sessionId));
+	if (!session || !liveStatuses.includes(session.status)) return "skipped";
+	try {
+		const result = await putPipeline(
+			`/v1/sessions/${sessionId}/glossary`,
+			glossaryUpdateRequestSchema.parse({
+				glossary: await mergedGlossary(sessionId),
+			}),
+		);
+		return result.ok ? "ok" : "failed";
+	} catch {
+		return "failed";
+	}
+}
+
+/**
+ * Live-syncs the glossary after a mutation: a session-scoped change pushes to
+ * that session; a global change pushes to every session with an active run.
+ */
+async function syncAfterGlossaryMutation(
+	sessionId: string | null,
+): Promise<"ok" | "failed" | "skipped"> {
+	if (sessionId) return syncRunningGlossary(sessionId);
+	const running = await db
+		.select({ id: sessions.id })
+		.from(sessions)
+		.where(inArray(sessions.status, liveStatuses));
+	let failed = false;
+	for (const row of running) {
+		if ((await syncRunningGlossary(row.id)) !== "ok") failed = true;
+	}
+	return running.length === 0 ? "skipped" : failed ? "failed" : "ok";
+}
+
+async function assertSessionExists(sessionId: string) {
+	const [session] = await db
+		.select({ id: sessions.id })
+		.from(sessions)
+		.where(eq(sessions.id, sessionId));
+	if (!session) {
+		throw new TRPCError({ code: "NOT_FOUND" });
+	}
 }
 
 /** Mark the session error with the pipeline failure detail. */
@@ -373,6 +452,135 @@ export const adminRouter = createTRPCRouter({
 					return { runId: session.currentRunId, status: "error" as const };
 				}
 				return { runId: session.currentRunId, status: "stopping" as const };
+			}),
+	}),
+
+	glossary: createTRPCRouter({
+		/** Terms of one scope: `sessionId` set -> that session's, else global. */
+		list: protectedProcedure
+			.input(z.object({ sessionId: uuid.nullish() }))
+			.query(({ input }) =>
+				db
+					.select()
+					.from(glossaryTerms)
+					.where(
+						input.sessionId
+							? eq(glossaryTerms.sessionId, input.sessionId)
+							: isNull(glossaryTerms.sessionId),
+					)
+					.orderBy(asc(glossaryTerms.createdAt), asc(glossaryTerms.id)),
+			),
+
+		/**
+		 * Creates or updates a term. Without `id`, a same-scope term matching
+		 * case-insensitively is updated instead of duplicated.
+		 */
+		upsert: protectedProcedure
+			.input(
+				z.object({
+					id: uuid.optional(),
+					sessionId: uuid.nullish(),
+					term: z.string().trim().min(1),
+					translation: z.string().trim().nullish(),
+					notes: z.string().trim().nullish(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const sessionId = input.sessionId ?? null;
+				if (sessionId) await assertSessionExists(sessionId);
+				const patch = {
+					term: input.term,
+					translation: input.translation || null,
+					notes: input.notes || null,
+				};
+
+				let targetId = input.id;
+				if (!targetId) {
+					const existing = await db
+						.select({ id: glossaryTerms.id, term: glossaryTerms.term })
+						.from(glossaryTerms)
+						.where(
+							sessionId
+								? eq(glossaryTerms.sessionId, sessionId)
+								: isNull(glossaryTerms.sessionId),
+						);
+					targetId = existing.find(
+						(row) => row.term.trim().toLowerCase() === patch.term.toLowerCase(),
+					)?.id;
+				}
+
+				let row: typeof glossaryTerms.$inferSelect | undefined;
+				if (targetId) {
+					[row] = await db
+						.update(glossaryTerms)
+						.set(patch)
+						.where(eq(glossaryTerms.id, targetId))
+						.returning();
+					if (!row) throw new TRPCError({ code: "NOT_FOUND" });
+				} else {
+					[row] = await db
+						.insert(glossaryTerms)
+						.values({ ...patch, sessionId })
+						.returning();
+				}
+				return {
+					term: row,
+					liveSync: await syncAfterGlossaryMutation(sessionId),
+				};
+			}),
+
+		/**
+		 * Bulk paste (`term = translation`, one per line). Terms already present
+		 * in the scope are skipped, not updated.
+		 */
+		addMany: protectedProcedure
+			.input(z.object({ sessionId: uuid.nullish(), text: z.string().min(1) }))
+			.mutation(async ({ input }) => {
+				const sessionId = input.sessionId ?? null;
+				if (sessionId) await assertSessionExists(sessionId);
+				const parsed = parseBulkPaste(input.text);
+				const existing = new Set(
+					(
+						await db
+							.select({ term: glossaryTerms.term })
+							.from(glossaryTerms)
+							.where(
+								sessionId
+									? eq(glossaryTerms.sessionId, sessionId)
+									: isNull(glossaryTerms.sessionId),
+							)
+					).map((row) => row.term.trim().toLowerCase()),
+				);
+				const fresh = parsed.filter(
+					(item) => !existing.has(item.term.toLowerCase()),
+				);
+				const rows = fresh.length
+					? await db
+							.insert(glossaryTerms)
+							.values(fresh.map((item) => ({ ...item, sessionId })))
+							.returning()
+					: [];
+				return {
+					added: rows.length,
+					skipped: parsed.length - rows.length,
+					liveSync: await syncAfterGlossaryMutation(sessionId),
+				};
+			}),
+
+		delete: protectedProcedure
+			.input(z.object({ id: uuid }))
+			.mutation(async ({ input }) => {
+				const [row] = await db
+					.delete(glossaryTerms)
+					.where(eq(glossaryTerms.id, input.id))
+					.returning();
+				if (!row) {
+					throw new TRPCError({ code: "NOT_FOUND" });
+				}
+				return {
+					deleted: true,
+					liveSync: await syncAfterGlossaryMutation(row.sessionId),
+				};
 			}),
 	}),
 

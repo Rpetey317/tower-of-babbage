@@ -133,7 +133,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 
 ## M4: Glossary
 
-- **M4-01** · web · M · deps M1-05 · `todo`
+- **M4-01** · web · M · deps M1-05 · `done`
   `glossary_terms` CRUD for global and session scope, bulk paste (`term = translation`), merge/dedupe/cap into the start request, session page editor and `/admin/glossary`.
   Done when: merge logic tests pass; start request contains the merged list.
 - **M4-02** · pipeline · S · deps M1-12 · `todo`
