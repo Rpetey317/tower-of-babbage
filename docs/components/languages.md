@@ -18,10 +18,11 @@ and the language of the interface (per visitor).
   the web app's `SUPPORTED_LANGUAGES` list (`apps/web/src/lib/languages.ts`) so
   it appears in the admin form.
 
-Gemma 4 was trained on speech in many languages and its model card lists ASR
-and speech translation as supported tasks without a fixed language list. Quality
-must be checked per language pair; the roadmap task for M6 includes a
-Portuguese fixture for that reason.
+Both inference paths accept a broad language set: Gemini's models and Gemma 4
+(whose model card lists ASR and speech translation as supported tasks without
+a fixed language list) cover the languages in scope. Quality must be checked
+per language pair; the roadmap task for M6 includes a Portuguese fixture for
+that reason.
 
 ## Milestones
 
@@ -29,7 +30,7 @@ Portuguese fixture for that reason.
 | --- | --- |
 | M1 | `en -> es` and `es -> en` hard-coded defaults in the admin form |
 | M6 | Any combination from `SUPPORTED_LANGUAGES` (`en`, `es`, `pt` verified; others selectable, marked "unverified") |
-| backlog | Automatic source-language detection (Gemma prompt variant), per-chunk language switching for bilingual speakers |
+| backlog | Automatic source-language detection (model prompt variant), per-chunk language switching for bilingual speakers |
 
 ## Interface locale
 

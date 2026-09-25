@@ -41,7 +41,7 @@ apps/web/src/
 | WebSocket | `github.com/coder/websocket` | Ingest endpoint |
 | Audio decode | `ffmpeg` subprocess | File replay now, stream URL and devices later |
 | VAD | Energy-based in Go (M1). Silero VAD via ONNX Runtime in the backlog | |
-| Inference client | `net/http` against OpenAI-compatible chat completions | No SDK |
+| Inference client | `net/http` against the Gemini API (`generateContent`) and OpenAI-compatible chat completions | No SDK |
 | Config | Environment variables, parsed once into a `Config` struct | |
 | Logging | `log/slog`, JSON in production | |
 | Lint | `go vet`, `staticcheck` | |
@@ -56,33 +56,38 @@ services/pipeline/
   internal/control/        HTTP control API and ingest WebSocket handler
   internal/ingest/         sources: websocket, filereplay (ffmpeg); PCM frame types
   internal/chunk/          chunker, energy VAD, audio clock
-  internal/provider/       SpeechProvider interface, openaicompat, mock, gemini (stub)
+  internal/provider/       SpeechProvider interface and mock; gemini (demo/MVP) and openaicompat (local) planned
   internal/session/        runner: queue, workers, backpressure, stats
   internal/emit/           batching client for the web events endpoint
   internal/contract/       structs mirroring docs/contract.md, fixture tests
 ```
 
-## Inference sidecar
+## Inference providers
 
-- Default: llama.cpp `llama-server` with `ggml-org/gemma-4-E2B-it-GGUF` and its
-  audio-capable mmproj. Vulkan build for the AMD RX 6600; CUDA or Metal builds
-  work unchanged.
-- Alternative: vLLM with `google/gemma-4-E2B-it` or `E4B` on 24 GB+ NVIDIA GPUs.
-- Both expose `POST /v1/chat/completions`; the audio content block differs
-  (`input_audio` for llama.cpp, `audio_url` for vLLM), selected with
-  `INFERENCE_AUDIO_FORMAT`.
+- Demo/MVP: the Gemini API. `POST /v1beta/models/{GEMINI_MODEL}:generateContent`
+  with the chunk WAV as `inlineData` (`audio/wav`) and `GEMINI_API_KEY` in the
+  `x-goog-api-key` header.
+- Local path: llama.cpp `llama-server` with `ggml-org/gemma-4-E2B-it-GGUF` and
+  its audio-capable mmproj. Vulkan build for the AMD RX 6600; CUDA or Metal
+  builds work unchanged.
+- Local alternative: vLLM with `google/gemma-4-E2B-it` or `E4B` on 24 GB+
+  NVIDIA GPUs.
+- Both local servers expose `POST /v1/chat/completions`; the audio content
+  block differs (`input_audio` for llama.cpp, `audio_url` for vLLM), selected
+  with `INFERENCE_AUDIO_FORMAT`.
 
 ## Infra and tooling
 
 - `infra/compose.yml`: services `postgres`, `llama`, `llama-cpu`, `pipeline`,
   `web`. Profiles `infra` (postgres + Vulkan llama), `cpu` (CPU llama), and
-  `all`. `make infra-up` selects CPU when `/dev/dri` is unavailable.
+  `all`. `make infra-up` selects CPU when `/dev/dri` is unavailable. The
+  `llama`/`llama-cpu` services are only needed for local inference.
 - `infra/pull-model.sh`: downloads the selected GGUF and BF16 mmproj into
   `infra/models/` (git-ignored), checking their Hugging Face SHA-256 values.
 - Root `Makefile` targets: `infra-up`, `infra-down`, `model-pull`, `web`,
   `pipeline`, `db-push`, `test`, `lint`, `smoke`.
 - `scripts/smoke.sh`: end-to-end check with the mock provider (see [testing.md](testing.md)).
-- `scripts/transcribe-file.sh`: sends the first chunk of a WAV to the configured inference endpoint and prints the result; quickest way to check a model setup.
+- `scripts/transcribe-file.sh`: sends the first chunk of a WAV to the configured inference endpoint and prints the result; quickest way to check a model setup. A Gemini variant ships with the gemini provider task.
 - `scripts/bench-latency.sh`: replays a fixture through N sessions and reports latency percentiles.
 
 ## Environment variables
@@ -107,7 +112,7 @@ Pipeline (`services/pipeline/.env`):
 | `LISTEN_ADDR` | `:8090` | Control API and ingest WebSocket |
 | `WEB_URL` | `http://localhost:3000` | Events endpoint base URL |
 | `SHARED_SECRET` | none, required | Must match the web app |
-| `PROVIDER` | `openai-compat` | `openai-compat`, `mock`, `gemini` |
+| `PROVIDER` | `openai-compat` | `gemini`, `openai-compat`, `mock`. `gemini` for the demo/MVP, `mock` for development without a key |
 | `INFERENCE_URLS` | `http://localhost:8080` | Comma-separated OpenAI-compatible base URLs |
 | `INFERENCE_MODEL` | `gemma-4` | `model` field sent in requests; llama-server ignores it, vLLM needs the HF id |
 | `INFERENCE_AUDIO_FORMAT` | `input_audio` | `input_audio` (llama.cpp) or `audio_url` (vLLM) |
@@ -122,7 +127,8 @@ Pipeline (`services/pipeline/.env`):
 | `FIXTURES_DIR` | `../../fixtures/audio` | Root for `file_replay` paths; Dockerfile sets `/fixtures` in the container |
 | `EVENTS_FLUSH_MS` | `250` | Batching window for the events endpoint |
 | `LOG_LEVEL` | `info` | slog level |
-| `GEMINI_API_KEY` | none | Only for `PROVIDER=gemini` (backlog) |
+| `GEMINI_API_KEY` | none, required for `PROVIDER=gemini` | Google AI Studio API key, sent as `x-goog-api-key` |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | Model id in `generateContent` requests; `gemini-2.5-flash-lite` is the cheaper option |
 
 Compose-level (`infra/.env`, consumed by `infra/compose.yml` and mapped onto the variables above):
 
