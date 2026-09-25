@@ -7,6 +7,7 @@ import { getRequestLocale } from "~/lib/i18n/server";
 import { db } from "~/server/db";
 import { sessionEvents, sessions } from "~/server/db/schema";
 
+import { ExportLinks } from "../../_components/export-links";
 import { SessionActions } from "../../_components/session-actions";
 import { SessionEventsLog } from "../../_components/session-events-log";
 import {
@@ -85,6 +86,15 @@ export default async function SessionPage({
 					{copy.adminColLastError}: {session.lastError}
 				</p>
 			)}
+			<h2 className="mt-8 font-display text-2xl uppercase tracking-wide">
+				{copy.adminExportTitle}
+			</h2>
+			<ExportLinks
+				languages={[
+					...new Set([session.sourceLanguage, ...session.targetLanguages]),
+				]}
+				sessionId={session.id}
+			/>
 			<h2 className="mt-8 font-display text-2xl uppercase tracking-wide">
 				{copy.adminEditTitle}
 			</h2>

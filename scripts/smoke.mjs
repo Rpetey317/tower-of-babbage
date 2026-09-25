@@ -2,8 +2,8 @@
 /**
  * End-to-end smoke test (docs/testing.md "Smoke test"): drives a real run
  * through the public HTTP surface — admin login, session create/start via
- * tRPC, segment observation over the SSE subscription, stop and delete.
- * Implements steps 1-4 and 6; step 5 (export) arrives with M3-02.
+ * tRPC, segment observation over the SSE subscription, SRT export, stop
+ * and delete. Implements steps 1-6 of docs/testing.md "Smoke test".
  *
  * Preconditions: Postgres up, web app on WEB_URL, pipeline on PIPELINE_URL
  * with PROVIDER=mock, ADMIN_PASSWORD and SHARED_SECRET exported.
@@ -310,6 +310,41 @@ function checkSegments(events) {
 	);
 }
 
+/**
+ * Step 5: stop the run, wait for the last events to land, then download the
+ * SRT export for `es` and require at least 3 cues with well-formed,
+ * forward-moving timestamps. The export route is public, so no cookie.
+ */
+async function checkExport(cookie, session) {
+	await trpcMutation("admin.sessions.stop", { id: session.id }, cookie);
+	await pollStatus(session, ["idle", "error"], 15_000, "the session to settle");
+
+	const res = await req(
+		`${webUrl}/api/export/${session.id}?format=srt&lang=es`,
+	);
+	if (!res.ok) fail(`GET /api/export/${session.id} answered HTTP ${res.status}`);
+	const body = await res.text();
+	const cues = body.trim() === "" ? [] : body.trim().split(/\r?\n\r?\n/);
+	if (cues.length < 3) {
+		fail(`export for lang=es has ${cues.length} cues (need >= 3)`);
+	}
+	const stamp =
+		/^(\d{2}):(\d{2}):(\d{2}),(\d{3}) --> (\d{2}):(\d{2}):(\d{2}),(\d{3})$/;
+	const toMs = (h, m, s, ms) =>
+		((+h * 60 + +m) * 60 + +s) * 1_000 + +ms;
+	for (const cue of cues) {
+		const lines = cue.split(/\r?\n/);
+		const match = lines[1]?.match(stamp);
+		if (lines.length < 3 || !match) {
+			fail(`malformed export cue: ${cue.slice(0, 80)}`);
+		}
+		if (toMs(...match.slice(1, 5)) >= toMs(...match.slice(5, 9))) {
+			fail(`export cue with non-increasing timestamp: ${match[0]}`);
+		}
+	}
+	info(`export: ${cues.length} cues in ${session.slug}-es.srt`);
+}
+
 /** Stop, wait for a deletable status and delete; also the failure cleanup. */
 async function teardown(cookie, session) {
 	try {
@@ -362,10 +397,12 @@ async function main() {
 			() => collectSegments(session.id),
 		);
 		checkSegments(events);
+		await step(5, "stop, export SRT for es (>= 3 cues)", () =>
+			checkExport(cookie, session),
+		);
 	} catch (error) {
 		failed = error;
 	}
-	// Step 5 (export check) arrives with M3-02.
 	try {
 		await step(6, "stop and delete session", () => teardown(cookie, session));
 	} catch (error) {

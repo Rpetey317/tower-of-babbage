@@ -95,6 +95,7 @@ export const en = {
 	adminFormError: "Could not save. Check the fields.",
 	adminDeleteConfirm:
 		"Delete this session? Its segments and events are removed.",
+	adminExportTitle: "Export",
 
 	adminColAudio: "Audio",
 	adminColQueue: "Queue",
