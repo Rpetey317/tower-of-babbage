@@ -155,6 +155,9 @@ func TestGeminiRequestShape(t *testing.T) {
 	if body.GenerationConfig.Temperature != 0.2 || body.GenerationConfig.MaxOutputTokens != 256 {
 		t.Fatalf("generationConfig: %+v", body.GenerationConfig)
 	}
+	if body.GenerationConfig.ThinkingConfig.ThinkingBudget != 0 {
+		t.Fatalf("thinking must stay off: %+v", body.GenerationConfig.ThinkingConfig)
+	}
 }
 
 func TestGeminiTranslateSendsNoAudio(t *testing.T) {

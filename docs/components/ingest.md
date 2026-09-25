@@ -45,10 +45,13 @@ connecting; tokens last 10 minutes and are refreshed on reconnect.
 ffmpeg -hide_banner -loglevel error -re [-stream_loop -1] -i <path> -f s16le -ac 1 -ar 16000 -
 ```
 
-Stdout is read in 6400-byte frames. Process exit before `stop` emits a
-`ffmpeg_exit` log event and puts the session in `error`. `-re` paces the file
-at real time so latency measurements are meaningful; stream URLs are already
-real time and omit it.
+Stdout is read in 6400-byte frames. A clean exit before `stop` (exit code 0:
+a non-looping file reaching its end) emits an info-level `ffmpeg_exit` event
+and winds the run down like a stop request — the buffered tail flushes and
+the run drains to `idle`. A non-zero exit emits `ffmpeg_exit` at error level
+and puts the session in `error`. `-re` paces the file at real time so
+latency measurements are meaningful; stream URLs are already real time and
+omit it.
 
 ## Audio clock
 
@@ -76,8 +79,8 @@ latency. The chunker turns the frame stream into `Chunk{index, startMs, endMs, p
      lowest-energy window within the last second.
 3. Chunks whose speech ratio is below 5% are discarded without a model call; the
    clock still advances so timestamps stay correct.
-4. The pipeline's `stop` and the WebSocket `end` message flush whatever is
-   buffered if it meets the minimum length.
+4. The pipeline's `stop`, a clean replay EOF and the WebSocket `end` message
+   flush whatever is buffered if it meets the minimum length.
 
 Chunks are serialized as 16-bit PCM WAV (44-byte header) and base64-encoded
 for the provider. A 6 s chunk is about 256 KB of base64.

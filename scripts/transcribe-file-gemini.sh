@@ -2,7 +2,7 @@
 # Gemini variant of transcribe-file.sh: sends the first 10 seconds of a WAV to
 # the Gemini generateContent endpoint and prints the raw output, transcript
 # and translation. Requires GEMINI_API_KEY; GEMINI_MODEL defaults to
-# gemini-2.5-flash.
+# gemini-3.8-flash.
 set -euo pipefail
 
 if [[ $# -lt 1 || $# -gt 3 ]]; then
@@ -38,7 +38,7 @@ fi
 
 base_url="${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com}"
 base_url="${base_url%/}"
-model="${GEMINI_MODEL:-gemini-2.5-flash}"
+model="${GEMINI_MODEL:-gemini-3.8-flash}"
 endpoint="${base_url}/v1beta/models/${model}:generateContent"
 
 work_dir="$(mktemp -d)"
@@ -64,7 +64,7 @@ node -e '
       {inlineData: {mimeType: "audio/wav", data: audioData}},
       {text: process.argv[2]}
     ]}],
-    generationConfig: {temperature, maxOutputTokens: 256}
+    generationConfig: {temperature, maxOutputTokens: 256, thinkingConfig: {thinkingBudget: 0}}
   };
   process.stdout.write(JSON.stringify(request));
 ' "$work_dir/chunk.b64" "$prompt" "$model" \

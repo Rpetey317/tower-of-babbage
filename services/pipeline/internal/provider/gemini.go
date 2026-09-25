@@ -293,8 +293,14 @@ func (g *Gemini) buildRequest(audio *WAV, prompt string) geminiRequest {
 	}
 	parts = append(parts, geminiPart{Text: prompt})
 	return geminiRequest{
-		Contents:         []geminiContent{{Parts: parts}},
-		GenerationConfig: geminiGenerationConfig{Temperature: g.temperature, MaxOutputTokens: 256},
+		Contents: []geminiContent{{Parts: parts}},
+		GenerationConfig: geminiGenerationConfig{
+			Temperature:     g.temperature,
+			MaxOutputTokens: 256,
+			// Thinking burns output budget and adds latency for no gain on
+			// ASR/AST prompts; keep it off like the local path does.
+			ThinkingConfig: geminiThinkingConfig{ThinkingBudget: 0},
+		},
 	}
 }
 
@@ -321,8 +327,16 @@ type geminiInlineData struct {
 }
 
 type geminiGenerationConfig struct {
-	Temperature     float64 `json:"temperature"`
-	MaxOutputTokens int     `json:"maxOutputTokens"`
+	Temperature     float64              `json:"temperature"`
+	MaxOutputTokens int                  `json:"maxOutputTokens"`
+	ThinkingConfig  geminiThinkingConfig `json:"thinkingConfig"`
+}
+
+// geminiThinkingConfig maps generationConfig.thinkingConfig; budget 0 keeps
+// thinking off so it cannot consume maxOutputTokens (observed as a MAX_TOKENS
+// truncation on gemini-3.x) or add caption latency.
+type geminiThinkingConfig struct {
+	ThinkingBudget int `json:"thinkingBudget"`
 }
 
 // geminiResponse is the subset of the generateContent response the provider

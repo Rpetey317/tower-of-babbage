@@ -182,3 +182,20 @@ limits and llama-server `--parallel` actually bound. Idle pipelines consume
 no CPU in scheduling. Run ordering is still guaranteed per session by the
 runner's outstanding-index tracker; the scheduler only chooses which session
 gets the next slot.
+## ADR-013: Clean replay EOF drains to idle instead of erroring
+
+Context. M1-14's first real run exposed that a non-looping `file_replay`
+reaching end of file put the session in `error` and left the buffered tail
+chunk in the chunker until an operator pressed stop. The tail's `latencyMs`
+then measured operator reaction time, not pipeline latency, and a completed
+demo replay looked like a failure on the dashboard.
+
+Decision. `ExitedError` with exit code 0 (ffmpeg finished the input) now logs
+`ffmpeg_exit` at info level and drives the same wind-down as a stop request:
+flush the tail, drain the queue, emit, end `idle`. Non-zero exits keep the
+error path unchanged.
+
+Consequences. Replay sessions self-complete with correct tail latency and a
+clean final status; `ffmpeg_exit` appears at two levels (info for natural
+EOF, error for real failures). Live sources (browser mic, stream URLs) are
+unaffected — their producers only return on cancellation.

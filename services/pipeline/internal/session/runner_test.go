@@ -13,6 +13,7 @@ import (
 
 	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/chunk"
 	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/contract"
+	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/ingest"
 	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/provider"
 )
 
@@ -395,5 +396,82 @@ func TestStopFlushesTailAndEndsIdle(t *testing.T) {
 	last := events.statuses[len(events.statuses)-1]
 	if last.Status != "idle" {
 		t.Fatalf("final status = %q, want idle", last.Status)
+	}
+}
+
+// startRunnerWithSource builds a runner through the registry path but with an
+// explicit source function, so tests can exercise runSource without ffmpeg.
+func startRunnerWithSource(t *testing.T, p provider.SpeechProvider, source func(context.Context, ingest.Sink) error) (*Runner, *captured) {
+	t.Helper()
+	events := &captured{}
+	reg := NewRegistry(testConfig(), p, events, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	req := contract.SessionStartRequest{
+		ContractVersion: contract.Version,
+		RunID:           "run-src",
+		SourceLanguage:  "en",
+		TargetLanguages: []string{"es"},
+		TranslationMode: "ast",
+		Source:          contract.Source{Type: "browser_mic", Config: json.RawMessage(`{}`)},
+	}
+	var runner *Runner
+	runner = newRunner(reg.ctx, "sess-src", req, reg.cfg, reg.provider, events, source, reg.sched, reg.logger, func() {
+		reg.sched.remove(runner)
+	})
+	reg.sched.add(runner)
+	go runner.run()
+	t.Cleanup(runner.Stop)
+	t.Cleanup(reg.Shutdown)
+	return runner, events
+}
+
+// A clean producer exit (a non-looping replay reaching EOF) flushes the
+// buffered tail and drains to idle like a stop request, logging ffmpeg_exit
+// at info level rather than erroring the session.
+func TestCleanSourceExitDrainsToIdle(t *testing.T) {
+	source := func(_ context.Context, sink ingest.Sink) error {
+		feed(t, sink, tonePCM(1200, 0.5))
+		return &ingest.ExitedError{ExitCode: 0}
+	}
+	_, events := startRunnerWithSource(t, &testProvider{inner: provider.NewMock(0, nil)}, source)
+
+	waitFor(t, "run to drain to idle", func() bool { return events.lastStatus() == "idle" })
+	if events.segmentCount() == 0 {
+		t.Fatal("clean exit did not flush the buffered chunk")
+	}
+	if !events.hasLog("ffmpeg_exit") {
+		t.Fatal("expected an ffmpeg_exit log event")
+	}
+	events.mu.Lock()
+	defer events.mu.Unlock()
+	for _, status := range events.statuses {
+		if status.Status == "error" {
+			t.Fatal("clean exit put the run in error")
+		}
+	}
+	for _, l := range events.logs {
+		if l.Code == "ffmpeg_exit" && l.Level != "info" {
+			t.Fatalf("ffmpeg_exit level = %q, want info", l.Level)
+		}
+	}
+}
+
+// A non-zero producer exit stays an ffmpeg_exit error.
+func TestFailedSourceExitEndsError(t *testing.T) {
+	source := func(context.Context, ingest.Sink) error {
+		return &ingest.ExitedError{ExitCode: 1, Stderr: "boom"}
+	}
+	_, events := startRunnerWithSource(t, &testProvider{inner: provider.NewMock(0, nil)}, source)
+
+	waitFor(t, "error status", func() bool { return events.lastStatus() == "error" })
+	events.mu.Lock()
+	defer events.mu.Unlock()
+	found := false
+	for _, l := range events.logs {
+		if l.Code == "ffmpeg_exit" && l.Level == "error" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("expected an error-level ffmpeg_exit log event")
 	}
 }
