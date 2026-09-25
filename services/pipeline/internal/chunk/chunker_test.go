@@ -54,7 +54,7 @@ func concat(parts ...[]byte) []byte {
 func TestCutsInsideSilences(t *testing.T) {
 	signal := concat(
 		tonePCM(5000, 8000),
-		silencePCM(500), // pause below Target: must not cut
+		silencePCM(500),  // pause below Target: must not cut
 		tonePCM(4000, 8000),
 		silencePCM(2000), // long pause after Target: cut lands here
 		tonePCM(3000, 8000),
