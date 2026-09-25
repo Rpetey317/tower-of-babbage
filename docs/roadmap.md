@@ -68,7 +68,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M1-08** · pipeline · M · deps M0-06, M1-07 · `todo`
   `internal/ingest`: WebSocket handler (hello, ready, binary frames, stats, end, close codes, producer replacement) with token verification; `file_replay` source spawning ffmpeg with path validation.
   Done when: handler tests with a WebSocket client cover the protocol and close codes; replay test streams the fixture and reports its length within one frame.
-- **M1-09** · pipeline · M · deps M0-03 · `todo`
+- **M1-09** · pipeline · M · deps M0-03 · `done`
   `internal/provider`: `SpeechProvider` interface, `prompts.go` (ASR, AST, translate, glossary block, language names), AST output parser, `mock` provider with `.mock.txt` support.
   Done when: table-driven tests for prompts and parser (well-formed, missing marker, multi-line, 60-term glossary cap); mock returns deterministic output.
 - **M1-10** · pipeline · M · deps M1-09 · `todo`
