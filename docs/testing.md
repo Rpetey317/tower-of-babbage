@@ -27,6 +27,7 @@ Commands: `make test` (unit and route tests), `make lint`, `make smoke`.
 | File | Content |
 | --- | --- |
 | `en-kubernetes-60s.wav` | 60 s, English, technical talk excerpt read aloud, 16 kHz mono |
+| `en-glossary-30s.wav` | 30 s, English, repeats `kubectl`, `etcd`, `Nerdearla` for the glossary quality check (`scripts/glossary-quality.mjs`) |
 | `es-charla-60s.wav` | 60 s, Spanish (Rioplatense), same kind of content |
 | `pt-sample-30s.wav` | 30 s, Portuguese, for M6 |
 | `<name>.txt` | Ground-truth transcript, one paragraph |

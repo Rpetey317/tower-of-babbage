@@ -1,0 +1,6 @@
+Before we go live, a quick look at the toolbox.
+We deploy every change with kubectl, and the cluster state lives in etcd.
+This week at Nerdearla, several speakers demoed kubectl plugins on stage.
+If kubectl hangs, check etcd health first.
+Nerdearla runs for four days, and every room streams captions like these.
+When etcd is slow, kubectl feels slow too, so we watch both during the talks at Nerdearla.
