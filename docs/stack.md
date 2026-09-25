@@ -56,7 +56,7 @@ services/pipeline/
   internal/control/        HTTP control API and ingest WebSocket handler
   internal/ingest/         sources: websocket, filereplay (ffmpeg); PCM frame types
   internal/chunk/          chunker, energy VAD, audio clock
-  internal/provider/       SpeechProvider interface and mock; gemini (demo/MVP) and openaicompat (local) planned
+  internal/provider/       SpeechProvider interface; gemini (demo/MVP), openaicompat (local) and mock
   internal/session/        runner: queue, workers, backpressure, stats
   internal/emit/           batching client for the web events endpoint
   internal/contract/       structs mirroring docs/contract.md, fixture tests
@@ -99,7 +99,7 @@ services/pipeline/
 - Root `Makefile` targets: `infra-up`, `infra-down`, `model-pull`, `web`,
   `pipeline`, `db-push`, `test`, `lint`, `smoke`.
 - `scripts/smoke.sh`: end-to-end check with the mock provider (see [testing.md](testing.md)).
-- `scripts/transcribe-file.sh` (`scripts/transcribe-file.ps1` on native Windows): sends the first chunk of a WAV to the configured inference endpoint and prints the result; quickest way to check a model setup. A Gemini variant ships with the gemini provider task.
+- `scripts/transcribe-file.sh` (`scripts/transcribe-file.ps1` on native Windows): sends the first chunk of a WAV to the configured inference endpoint and prints the result; quickest way to check a model setup. `scripts/transcribe-file-gemini.sh` does the same against the Gemini API.
 - `scripts/bench-latency.sh`: replays a fixture through N sessions and reports latency percentiles.
 
 ## Environment variables

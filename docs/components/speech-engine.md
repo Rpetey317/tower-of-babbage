@@ -61,8 +61,14 @@ x-goog-api-key: {GEMINI_API_KEY}
 The same ASR/AST/translate prompts are used; Gemini answers the AST format, so
 the interface's `TranscribeAndTranslate` applies. `GEMINI_MODEL` selects the
 model (default `gemini-2.5-flash`); `GEMINI_API_KEY` is required. In-flight
-calls are bounded by `INFERENCE_MAX_CONCURRENCY` and `INFERENCE_TIMEOUT_SECONDS`;
-`Healthy` reports whether the API is reachable. Later option: the Live API for
+calls are bounded by `INFERENCE_MAX_CONCURRENCY` and `INFERENCE_TIMEOUT_SECONDS`.
+
+Failures: transport errors, timeouts, HTTP 429 and 5xx get one retry. Three
+consecutive calls that exhaust their retries open a failure breaker — calls
+fail fast with `ErrUnavailable` and one half-open trial is admitted every 5 s
+until any HTTP answer arrives, which marks the provider reachable again. Other
+4xx responses are request-level errors (`RequestError`): logged, chunk
+skipped. `Healthy` reports the breaker state. Later option: the Live API for
 streaming transcription, which would bypass the chunker; the interface would
 gain a streaming method at that point.
 
@@ -191,7 +197,8 @@ and [deployment.md](../deployment.md) for hardware.
   shape, auth header, error mapping and timeout.
 - Manual: `make infra-up` then `scripts/transcribe-file.sh fixtures/audio/en-kubernetes-60s.wav`
   prints transcript and translation for the first chunk against a local
-  endpoint; a Gemini variant does the same against the API. On native Windows
+  endpoint; `scripts/transcribe-file-gemini.sh` does the same against the
+  Gemini API. On native Windows
   run `.\dev.ps1 inference` in one terminal and `.\dev.ps1 transcribe` in
   another (see [deployment.md](../deployment.md));
   `scripts/windows-inference.test.ps1` exercises the PowerShell path offline.

@@ -17,16 +17,6 @@ import (
 
 var _ SpeechProvider = (*OpenAICompat)(nil)
 
-// ErrUnavailable reports that every configured endpoint is unhealthy or busy;
-// the runner surfaces it as provider_unavailable and keeps dropping chunks
-// until an endpoint recovers.
-var ErrUnavailable = errors.New("openaicompat: no healthy inference endpoint")
-
-// ErrBadOutput wraps errors from parsing model output (for example a missing
-// AST marker); the runner logs provider_bad_output and falls back to
-// Transcribe + Translate.
-var ErrBadOutput = errors.New("openaicompat: unparseable model output")
-
 const (
 	// maxEndpointAttempts bounds a call to the first endpoint plus one retry
 	// on a different endpoint.
@@ -38,17 +28,6 @@ const (
 	probeTimeout           = 2 * time.Second
 	maxResponseBytes       = 1 << 20
 )
-
-// RequestError is a non-retryable API rejection (4xx). The runner logs it and
-// skips the chunk.
-type RequestError struct {
-	Status  int
-	Message string
-}
-
-func (e *RequestError) Error() string {
-	return fmt.Sprintf("openaicompat: status %d: %s", e.Status, e.Message)
-}
 
 // OpenAICompatConfig selects the endpoints and request parameters for the
 // OpenAI-compatible provider; values come from the INFERENCE_* variables
