@@ -124,7 +124,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 
 ## M3: Export
 
-- **M3-01** · web · M · deps M1-01 · `todo`
+- **M3-01** · web · M · deps M1-01 · `done`
   `server/export/` SRT, VTT and TXT generators with the cue rules from [export.md](components/export.md).
   Done when: golden-file tests pass including split, merge and empty-run cases.
 - **M3-02** · web · S · deps M3-01, M1-05 · `todo`

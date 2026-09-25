@@ -1,0 +1,14 @@
+[
+	{ "startMs": 0, "endMs": 2400, "text": "Welcome to the session, everyone." },
+	{
+		"startMs": 2400,
+		"endMs": 5100,
+		"text": "Today we are going to talk about live captions and how they work in practice."
+	},
+	{
+		"startMs": 7000,
+		"endMs": 9600,
+		"text": "First, a quick look at the architecture."
+	},
+	{ "startMs": 9600, "endMs": 12400, "text": "Any questions so far?" }
+]

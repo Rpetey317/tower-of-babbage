@@ -1,0 +1,10 @@
+[
+	{ "startMs": 0, "endMs": 500, "text": "One." },
+	{ "startMs": 500, "endMs": 1000, "text": "Two." },
+	{
+		"startMs": 1000,
+		"endMs": 4000,
+		"text": "A normal length cue follows here."
+	},
+	{ "startMs": 4000, "endMs": 4400, "text": "Bye." }
+]
