@@ -35,6 +35,11 @@ Secrets and hosts come from `infra/.env` (copied from `infra/.env.example`):
 `PUBLIC_WEB_URL`, `PUBLIC_PIPELINE_WS_URL`, `GEMINI_API_KEY` (Gemini path),
 `LLAMA_*` (local path).
 
+The playback view (`/s/[slug]/play`) serves video fixtures through the web
+app's `MEDIA_DIR` (default `../../fixtures/audio`); point it at the same
+directory the pipeline sees as `FIXTURES_DIR`. See
+[components/playback.md](components/playback.md).
+
 ## Local inference: llama-server
 
 Only needed for the local path (`PROVIDER=openai-compat`); not for the Gemini

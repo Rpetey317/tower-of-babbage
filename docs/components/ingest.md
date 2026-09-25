@@ -18,7 +18,9 @@ in how they produce those frames.
 
 `file_replay` exists so that tests, demos and multi-session load runs need no
 human at a microphone. Paths are resolved under `FIXTURES_DIR` only; absolute
-paths and `..` are rejected.
+paths and `..` are rejected. Video containers (mp4, webm, mkv, mov) are
+accepted too: ffmpeg demuxes their audio track into the same frame stream,
+which is what the [playback view](playback.md) replays.
 
 ## Browser capture (operator page)
 

@@ -42,6 +42,9 @@ export const env = createEnv({
 			"Replace the example SHARED_SECRET in production",
 		),
 		PIPELINE_URL: httpUrl,
+		// Directory `/api/media/[slug]` streams `file_replay` video sources
+		// from; the same tree the pipeline sees as FIXTURES_DIR.
+		MEDIA_DIR: z.string().default("../../fixtures/audio"),
 		NODE_ENV: z
 			.enum(["development", "test", "production"])
 			.default("development"),
@@ -63,6 +66,7 @@ export const env = createEnv({
 		AUTH_SECRET: process.env.AUTH_SECRET,
 		SHARED_SECRET: process.env.SHARED_SECRET,
 		PIPELINE_URL: process.env.PIPELINE_URL,
+		MEDIA_DIR: process.env.MEDIA_DIR,
 		NODE_ENV: process.env.NODE_ENV,
 		NEXT_PUBLIC_PIPELINE_WS_URL: process.env.NEXT_PUBLIC_PIPELINE_WS_URL,
 		NEXT_PUBLIC_DEFAULT_LOCALE: process.env.NEXT_PUBLIC_DEFAULT_LOCALE,
