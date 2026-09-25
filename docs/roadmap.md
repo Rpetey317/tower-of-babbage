@@ -109,7 +109,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M2-01** · pipeline · M · deps M1-11 · `done`
   Concurrent runners sharing provider capacity: per-session isolation, fair scheduling across sessions (round-robin over session queues), clean shutdown of many sessions.
   Done when: test with 4 mock sessions shows all progressing, no goroutine leaks (`goleak`), stats independent per session.
-- **M2-02** · web · L · deps M1-05, M1-03 · `todo`
+- **M2-02** · web · L · deps M1-05, M1-03 · `done`
   Monitoring dashboard at `/admin` per [admin-panel.md](components/admin-panel.md): columns and alarms, `admin.onStatus` live updates, `pipelineHealth`, `session_events` log on the session page.
   Done when: manual checklist in admin-panel.md passes with the mock provider, including `status_timeout` after killing the pipeline.
 - **M2-03** · web · M · deps M1-05 · `done`

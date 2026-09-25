@@ -95,4 +95,26 @@ export const es = {
 	adminFormError: "No se pudo guardar. Revisá los campos.",
 	adminDeleteConfirm:
 		"¿Eliminar esta sesión? Se borran sus segmentos y eventos.",
+
+	adminColAudio: "Audio",
+	adminColQueue: "Cola",
+	adminColLatency: "Latencia p50/p95",
+	adminColDropped: "Descartados",
+	adminPipelineTitle: "Pipeline",
+	adminPipelineProvider: "Proveedor",
+	adminPipelineEndpoints: "Endpoints",
+	adminPipelineActiveSessions: "Sesiones activas",
+	adminPipelineUnreachable: "Sin conexión",
+	adminEventsTitle: "Eventos recientes",
+	adminEventsEmpty: "Todavía no hay eventos.",
+	adminColTime: "Hora",
+	adminColLevel: "Nivel",
+	adminColCode: "Código",
+	adminColMessage: "Mensaje",
+	adminAlarmAudio:
+		"Sin audio hace más de 10 s: el productor puede estar detenido",
+	adminAlarmQueue:
+		"Cola por encima de 2: la inferencia es lenta para esta sesión",
+	adminAlarmLatency: "p95 por encima de 10 s",
+	adminAlarmDropped: "Se descartaron chunks",
 };

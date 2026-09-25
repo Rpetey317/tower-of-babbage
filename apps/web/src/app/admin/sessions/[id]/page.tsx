@@ -1,13 +1,14 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getDictionary } from "~/lib/i18n";
 import { getRequestLocale } from "~/lib/i18n/server";
 import { db } from "~/server/db";
-import { sessions } from "~/server/db/schema";
+import { sessionEvents, sessions } from "~/server/db/schema";
 
 import { SessionActions } from "../../_components/session-actions";
+import { SessionEventsLog } from "../../_components/session-events-log";
 import {
 	SessionForm,
 	type SessionFormValues,
@@ -25,6 +26,13 @@ export default async function SessionPage({
 	const { id } = await params;
 	const [session] = await db.select().from(sessions).where(eq(sessions.id, id));
 	if (!session) notFound();
+
+	const events = await db
+		.select()
+		.from(sessionEvents)
+		.where(eq(sessionEvents.sessionId, session.id))
+		.orderBy(desc(sessionEvents.createdAt), desc(sessionEvents.id))
+		.limit(100);
 
 	const initial: SessionFormValues = {
 		title: session.title,
@@ -108,6 +116,11 @@ export default async function SessionPage({
 					deleteConfirm: copy.adminDeleteConfirm,
 				}}
 				mode="edit"
+				sessionId={session.id}
+			/>
+			<SessionEventsLog
+				copy={copy}
+				initialEvents={events}
 				sessionId={session.id}
 			/>
 		</main>
