@@ -100,7 +100,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M1-15** · docs · S · deps M1-13 · `todo`
   README quick start verified from a clean clone; add two screenshots (audience, admin).
   Done when: a second person or agent follows README only and reaches captions with the mock provider.
-- **M1-16** · pipeline · M · deps M1-09 · `todo`
+- **M1-16** · pipeline · M · deps M1-09 · `doing`
   `gemini` provider per [speech-engine.md](components/speech-engine.md): `generateContent` REST client with `inlineData` WAV, `GEMINI_API_KEY`/`GEMINI_MODEL` config, concurrency bound from `INFERENCE_MAX_CONCURRENCY`, error mapping, single retry on transient failures; Gemini variant of `scripts/transcribe-file.sh`.
   Done when: `httptest` tests assert request shape, auth header and error handling; a real API call against `en-kubernetes-60s.wav` prints transcript and translation, recorded in the issue.
 

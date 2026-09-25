@@ -35,6 +35,7 @@ type Config struct {
 	EventsFlush             time.Duration
 	LogLevel                slog.Level
 	GeminiAPIKey            string
+	GeminiModel             string
 }
 
 // Load reads the process environment once at startup.
@@ -60,6 +61,7 @@ func Parse(lookup func(string) (string, bool)) (Config, error) {
 		InferenceAudioFormat: value("INFERENCE_AUDIO_FORMAT", "input_audio"),
 		FixturesDir:          value("FIXTURES_DIR", "../../fixtures/audio"),
 		GeminiAPIKey:         value("GEMINI_API_KEY", ""),
+		GeminiModel:          value("GEMINI_MODEL", "gemini-2.5-flash"),
 	}
 
 	if err := validateListenAddr(config.ListenAddr); err != nil {
@@ -79,6 +81,9 @@ func Parse(lookup func(string) (string, bool)) (Config, error) {
 	}
 	if config.Provider == "gemini" && config.GeminiAPIKey == "" {
 		return Config{}, fmt.Errorf("GEMINI_API_KEY: required for the gemini provider")
+	}
+	if config.GeminiModel == "" {
+		return Config{}, fmt.Errorf("GEMINI_MODEL: must not be empty")
 	}
 	for _, endpoint := range strings.Split(value("INFERENCE_URLS", "http://localhost:8080"), ",") {
 		endpoint = strings.TrimSpace(endpoint)

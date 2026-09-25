@@ -5,9 +5,32 @@ package provider
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/contract"
 )
+
+// ErrUnavailable reports that inference is unreachable; the runner surfaces it
+// as provider_unavailable and keeps dropping chunks until the backend recovers.
+var ErrUnavailable = errors.New("provider: inference unavailable")
+
+// ErrBadOutput wraps errors from parsing model output (for example a missing
+// AST marker); the runner logs provider_bad_output and falls back to
+// Transcribe + Translate.
+var ErrBadOutput = errors.New("provider: unparseable model output")
+
+// RequestError is an HTTP error response from the backend. 4xx rejections
+// (except 429) are non-retryable; 5xx and 429 may be retried. The runner logs
+// it and skips the chunk.
+type RequestError struct {
+	Status  int
+	Message string
+}
+
+func (e *RequestError) Error() string {
+	return fmt.Sprintf("provider: status %d: %s", e.Status, e.Message)
+}
 
 // SpeechProvider is implemented once per backend. Implementations are safe for
 // concurrent use; the session runner limits in-flight calls.

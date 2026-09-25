@@ -85,12 +85,19 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	}
 }
 
-// buildProvider picks the SpeechProvider from PROVIDER. The gemini provider
-// lands with M1-16; until then it fails fast at startup.
+// buildProvider picks the SpeechProvider from PROVIDER.
 func buildProvider(cfg config.Config) (provider.SpeechProvider, error) {
 	switch cfg.Provider {
 	case "mock":
 		return provider.NewMock(cfg.MockLatency, nil), nil
+	case "gemini":
+		return provider.NewGemini(provider.GeminiConfig{
+			APIKey:         cfg.GeminiAPIKey,
+			Model:          cfg.GeminiModel,
+			MaxConcurrency: cfg.InferenceMaxConcurrency,
+			Timeout:        cfg.InferenceTimeout,
+			Temperature:    cfg.InferenceTemperature,
+		})
 	case "openai-compat":
 		return provider.NewOpenAICompat(provider.OpenAICompatConfig{
 			URLs:           cfg.InferenceURLs,
