@@ -6,6 +6,9 @@ raw response, parsed transcript and translation, and request time. The existing
 `infra/pull-model.sh` downloads and verifies the selected GGUF and BF16 audio
 projector.
 
+The model check supports both `INFERENCE_AUDIO_FORMAT=input_audio` for llama.cpp
+and `audio_url` for vLLM. It rejects responses stopped by the output token limit.
+
 The Vulkan run on the demo box remains to be done. On that machine, run:
 
 ```bash

@@ -37,6 +37,12 @@ if [[ ! "$endpoint" =~ ^https?://[^/]+ ]]; then
   exit 2
 fi
 
+audio_format="${INFERENCE_AUDIO_FORMAT:-input_audio}"
+case "$audio_format" in
+  input_audio|audio_url) ;;
+  *) echo "INFERENCE_AUDIO_FORMAT must be input_audio or audio_url" >&2; exit 2 ;;
+esac
+
 work_dir="$(mktemp -d)"
 trap 'rm -rf "$work_dir"' EXIT
 
@@ -55,12 +61,14 @@ node -e '
   if (!Number.isFinite(temperature) || temperature < 0 || temperature > 2) {
     throw new Error("INFERENCE_TEMPERATURE must be a number from 0 to 2");
   }
+  const audioData = fs.readFileSync(process.argv[1], "utf8");
+  const audio = process.argv[5] === "audio_url"
+    ? {type: "audio_url", audio_url: {url: `data:audio/wav;base64,${audioData}`}}
+    : {type: "input_audio", input_audio: {data: audioData, format: "wav"}};
   const request = {
     model: process.argv[3],
     messages: [{role: "user", content: [
-      {type: "input_audio", input_audio: {
-        data: fs.readFileSync(process.argv[1], "utf8"), format: "wav"
-      }},
+      audio,
       {type: "text", text: process.argv[2]}
     ]}],
     temperature, top_p: 0.95, top_k: 64, max_tokens: 256,
@@ -68,7 +76,7 @@ node -e '
   };
   process.stdout.write(JSON.stringify(request));
 ' "$work_dir/chunk.b64" "$prompt" "${INFERENCE_MODEL:-gemma-4}" \
-  "${INFERENCE_TEMPERATURE:-0.2}" > "$work_dir/request.json"
+  "${INFERENCE_TEMPERATURE:-0.2}" "$audio_format" > "$work_dir/request.json"
 
 if ! request_time="$(curl --fail-with-body --silent --show-error --max-time 180 \
   --header 'Content-Type: application/json' \
@@ -96,7 +104,11 @@ node -e '
   const fs = require("node:fs");
   try {
     const response = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-    const raw = response.choices?.[0]?.message?.content;
+    const choice = response.choices?.[0];
+    if (choice?.finish_reason === "length") {
+      throw new Error("Model output was truncated (finish_reason: length)");
+    }
+    const raw = choice?.message?.content;
     if (typeof raw !== "string" || !raw.trim()) {
       throw new Error("Model response has no text content");
     }
