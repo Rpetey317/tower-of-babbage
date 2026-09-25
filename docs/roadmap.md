@@ -97,7 +97,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
   p50/p95 latency and any parsing failures in the issue; tune `CHUNK_*`,
   `GEMINI_MODEL` and temperature defaults if needed and update stack.md.
   Done when: a 60 s replay produces Spanish captions end to end with p95 latency under 10 s, results recorded.
-- **M1-15** · docs · S · deps M1-13 · `todo`
+- **M1-15** · docs · S · deps M1-13 · `doing`
   README quick start verified from a clean clone; add two screenshots (audience, admin).
   Done when: a second person or agent follows README only and reaches captions with the mock provider.
 - **M1-16** · pipeline · M · deps M1-09 · `doing`

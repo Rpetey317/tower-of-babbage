@@ -56,19 +56,21 @@ Details: [docs/architecture.md](docs/architecture.md).
 
 ## Quick start
 
-Prerequisites: Docker, Node 22 with pnpm, Go 1.24, ffmpeg. A `GEMINI_API_KEY`
-is needed for real inference; the mock provider needs no model or key. A GPU
-is only required when running the local Gemma 4 path.
+Prerequisites: Git, Docker, Node 22 with pnpm, Go 1.24, and ffmpeg. The mock
+provider needs no model, GPU, or API key. Real Gemini inference needs a
+`GEMINI_API_KEY`; the local Gemma 4 path needs a GPU.
 
 ```bash
-# 1. Infrastructure: Postgres (make infra-up also starts llama-server, only needed for local inference)
-make infra-up
+# 1. Install dependencies and start only Postgres (no model download)
+pnpm install
+cp infra/.env.example infra/.env
+docker compose --env-file infra/.env -f infra/compose.yml --profile infra up -d postgres
 
-# 2. Web app settings and database (schema plus demo sessions demo-en/demo-es)
+# 2. Configure the web app and create the schema plus demo-en/demo-es sessions
 cp apps/web/.env.example apps/web/.env
 make db-push && pnpm --dir apps/web db:seed
 
-# 3. Load the pipeline's local development settings
+# 3. Load the pipeline settings (PROVIDER=mock)
 cp services/pipeline/.env.example services/pipeline/.env
 set -a; . services/pipeline/.env; set +a
 
@@ -79,9 +81,13 @@ make pipeline   # control API on :8090, mock provider by default from .env
 # To use Gemini (demo/MVP path)
 GEMINI_API_KEY=<key> PROVIDER=gemini make pipeline
 
-# To use the local model instead
+# To use the local model instead (requires llama-server and a downloaded model)
 PROVIDER=openai-compat make pipeline
 ```
+
+Open `/admin`, sign in with the development password `change-me`, and start
+`demo-en`. Captions appear at `/s/demo-en?lang=es`. To stop the local database,
+run `docker compose --env-file infra/.env -f infra/compose.yml --profile infra stop postgres`.
 
 Deployment for an event, hardware guidance and every environment variable:
 [docs/deployment.md](docs/deployment.md). On native Windows the `dev.ps1`

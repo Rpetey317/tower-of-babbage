@@ -4,8 +4,8 @@ From the repository root, run `pnpm install`, then copy
 `apps/web/.env.example` to `apps/web/.env`. The example database URL matches
 the Postgres service in `infra/compose.yml`.
 
-Start Postgres with
-`docker compose --env-file infra/.env.example -f infra/compose.yml --profile infra up -d postgres`.
+Start Postgres with `cp infra/.env.example infra/.env` followed by
+`docker compose --env-file infra/.env -f infra/compose.yml --profile infra up -d postgres`.
 Then run `make web` and open `http://localhost:3000` or
 `http://localhost:3000/api/health`. The health route returns `{"status":"ok"}`
 only when it can query Postgres. Run `pnpm --dir apps/web lint`,

@@ -25,7 +25,7 @@ tints each speaker's text in a deterministic branding accent.
   palette mapping and stability; `captions.test.ts` covers `chunkSpeaker`;
   route test asserts persistence.
 - Docs: contract, domain-model, speech-engine, audience-web, roadmap M7,
-  ADR-015 (prompt tags vs. diarization).
+  ADR-016 (prompt tags vs. diarization).
 
 Verification: `go test ./...` + `go vet` + `staticcheck` clean; Vitest 211
 green against dedicated `babbage_test_m702`; `pnpm lint` + `tsc` clean;
