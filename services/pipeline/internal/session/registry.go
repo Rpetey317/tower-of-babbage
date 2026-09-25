@@ -88,6 +88,15 @@ func (e *InvalidSourceError) Error() string {
 	return fmt.Sprintf("invalid_source: unsupported source type %q", e.Type)
 }
 
+// UnsupportedLanguageError reports a start request naming a language outside
+// the provider's language table; the control API maps it to 400
+// unsupported_language.
+type UnsupportedLanguageError struct{ Code string }
+
+func (e *UnsupportedLanguageError) Error() string {
+	return fmt.Sprintf("unsupported_language: %q", e.Code)
+}
+
 // Registry tracks the active run per session and implements ingest.Sessions
 // so the WebSocket handler can resolve producers.
 type Registry struct {
@@ -129,6 +138,9 @@ func (r *Registry) Start(ctx context.Context, sessionID string, req contract.Ses
 	}
 	r.mu.Unlock()
 
+	if err := validateLanguages(req); err != nil {
+		return nil, err
+	}
 	source, err := r.buildSource(req.Source)
 	if err != nil {
 		return nil, err
@@ -150,6 +162,20 @@ func (r *Registry) Start(ctx context.Context, sessionID string, req contract.Ses
 	r.runs[sessionID] = runner
 	go runner.run(ctx)
 	return runner, nil
+}
+
+// validateLanguages rejects source and target languages outside the
+// provider's table (docs/components/languages.md) before any source work.
+func validateLanguages(req contract.SessionStartRequest) error {
+	if _, err := provider.LanguageName(req.SourceLanguage); err != nil {
+		return &UnsupportedLanguageError{Code: req.SourceLanguage}
+	}
+	for _, target := range req.TargetLanguages {
+		if _, err := provider.LanguageName(target); err != nil {
+			return &UnsupportedLanguageError{Code: target}
+		}
+	}
+	return nil
 }
 
 // buildSource resolves the start request's producer. browser_mic has none:
@@ -174,17 +200,18 @@ func (r *Registry) buildSource(src contract.Source) (func(context.Context, inges
 	}
 }
 
-// Stop asks the session's active run to wind down. An empty runID or the
-// current one is accepted; a different one is not_running per contract.
-func (r *Registry) Stop(sessionID, runID string) error {
+// Stop asks the session's active run to wind down and returns its runID. An
+// empty runID or the current one is accepted; a different one is
+// not_running per contract.
+func (r *Registry) Stop(sessionID, runID string) (string, error) {
 	r.mu.Lock()
 	runner, ok := r.runs[sessionID]
 	r.mu.Unlock()
 	if !ok || (runID != "" && runID != runner.RunID()) {
-		return ErrNotRunning
+		return "", ErrNotRunning
 	}
 	runner.Stop()
-	return nil
+	return runner.RunID(), nil
 }
 
 // Lookup implements ingest.Sessions.

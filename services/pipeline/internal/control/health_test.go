@@ -1,6 +1,7 @@
 package control
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -22,7 +23,7 @@ func TestHealth(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 			response := httptest.NewRecorder()
-			NewHandler(test.config, nil).ServeHTTP(response, request)
+			NewHandler(context.Background(), test.config, nil, nil).ServeHTTP(response, request)
 			if response.Code != http.StatusOK || response.Header().Get("Content-Type") != "application/json" {
 				t.Fatalf("unexpected response: %d %v", response.Code, response.Header())
 			}
@@ -45,10 +46,10 @@ func TestHealth(t *testing.T) {
 func TestHealthRejectsOtherRoutes(t *testing.T) {
 	for _, request := range []*http.Request{
 		httptest.NewRequest(http.MethodPost, "/healthz", nil),
-		httptest.NewRequest(http.MethodGet, "/v1/sessions", nil),
+		httptest.NewRequest(http.MethodGet, "/nope", nil),
 	} {
 		response := httptest.NewRecorder()
-		NewHandler(config.Config{Provider: "mock"}, nil).ServeHTTP(response, request)
+		NewHandler(context.Background(), config.Config{Provider: "mock"}, nil, nil).ServeHTTP(response, request)
 		if response.Code < 400 {
 			t.Fatalf("%s %s returned %d", request.Method, request.URL.Path, response.Code)
 		}
