@@ -51,7 +51,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 
 ## M1: Vertical slice (one session, end to end)
 
-- **M1-01** · web · M · deps M0-02 · `todo`
+- **M1-01** · web · M · deps M0-02 · `done`
   Drizzle schema from [domain-model.md](domain-model.md) (`sessions`, `segments`, `glossary_terms`, `session_events`, enums, indexes), `make db-push`, `pnpm db:seed` creating two `file_replay` demo sessions (`demo-en`, `demo-es`).
   Done when: push succeeds on a clean database; seed is idempotent; `drizzle-kit check` clean.
 - **M1-02** · web · M · deps M1-01, M0-05 · `todo`
@@ -69,7 +69,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M1-06** · web · M · deps M1-05 · `todo`
   Operator page `/admin/sessions/[id]/operator`: `getUserMedia`, 16 kHz `AudioContext`, worklet to Int16 200 ms frames, WebSocket per contract section 4, level meter, reconnect with fresh token.
   Done when: manual: `audioReceivedMs` grows at wall-clock rate for 2 minutes in Chromium and Firefox; reconnect after killing the pipeline works.
-- **M1-07** · pipeline · M · deps M0-03 · `todo`
+- **M1-07** · pipeline · M · deps M0-03 · `done`
   `internal/chunk`: PCM frame type, audio clock, WAV encoder, energy VAD with adaptive noise floor, chunker cut rules from [ingest.md](components/ingest.md).
   Done when: synthetic-signal tests (cuts inside silences, hard cut at max, silent chunks discarded) pass; replay of `en-kubernetes-60s.wav` yields the golden chunk count.
 - **M1-08** · pipeline · M · deps M0-06, M1-07 · `todo`
