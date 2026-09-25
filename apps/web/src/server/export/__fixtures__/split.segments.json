@@ -1,0 +1,8 @@
+[
+	{
+		"startMs": 0,
+		"endMs": 7400,
+		"text": "First sentence here. Second sentence is a bit longer. Third sentence wraps it up."
+	},
+	{ "startMs": 7400, "endMs": 9800, "text": "Back to short cues." }
+]

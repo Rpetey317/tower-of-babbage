@@ -36,6 +36,17 @@ Timestamps: SRT `HH:MM:SS,mmm`, VTT `HH:MM:SS.mmm`. TXT is one paragraph per
 cue without timestamps, with an optional `&timestamps=1` prefixing
 `[HH:MM:SS]`.
 
+Edge decisions in the M3-01 implementation:
+
+- A short cue at the end of the run has no following cue, so it merges into
+  the previous one; a lone short cue stays as-is.
+- A cue over 7 s without sentence punctuation stays whole rather than being
+  cut mid-sentence.
+- If a cue needs more than two wrapped lines, the remainder stays on the
+  second line instead of dropping text.
+- Files use LF line endings; `-->` inside cue text is rewritten as `→` in
+  VTT output.
+
 ## Verification
 
 - Vitest with a fixture set of segments: golden SRT, VTT and TXT files under

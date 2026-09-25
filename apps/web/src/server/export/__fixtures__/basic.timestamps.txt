@@ -1,0 +1,7 @@
+[00:00:00] Welcome to the session, everyone.
+
+[00:00:02] Today we are going to talk about live captions and how they work in practice.
+
+[00:00:07] First, a quick look at the architecture.
+
+[00:00:09] Any questions so far?
