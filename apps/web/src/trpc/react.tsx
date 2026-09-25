@@ -5,6 +5,7 @@ import {
 	httpBatchStreamLink,
 	httpSubscriptionLink,
 	loggerLink,
+	retryLink,
 	splitLink,
 } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
@@ -53,6 +54,13 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
 					enabled: (op) =>
 						process.env.NODE_ENV === "development" ||
 						(op.direction === "down" && op.result instanceof Error),
+				}),
+				// SSE subscriptions: reconnect with backoff, resuming at the last
+				// `tracked` event id. Queries and mutations pass through untouched.
+				retryLink({
+					retry: (opts) => opts.op.type === "subscription",
+					retryDelayMs: (attempts) =>
+						Math.min(500 * 2 ** (attempts - 1), 5_000),
 				}),
 				splitLink({
 					condition: (op) => op.type === "subscription",
