@@ -1,25 +1,23 @@
 import { asc, desc } from "drizzle-orm";
 import Link from "next/link";
 
+import { roomColorClasses } from "~/lib/admin/options";
 import { getDictionary } from "~/lib/i18n";
 import { getRequestLocale } from "~/lib/i18n/server";
 import { db } from "~/server/db";
 import { sessions } from "~/server/db/schema";
 
+import { DemoSessionsButton } from "./_components/demo-sessions-button";
 import { SessionActions } from "./_components/session-actions";
 import { StatusPill } from "./_components/status-pill";
 
 export const dynamic = "force-dynamic";
 
-const dotColors: Record<string, string> = {
-	violet: "bg-violet",
-	cyan: "bg-cyan",
-	green: "bg-green",
-	orange: "bg-orange",
-	yellow: "bg-yellow",
-	magenta: "bg-magenta",
-	grey: "bg-grey",
-};
+function dotColor(roomColor: string): string {
+	return (
+		roomColorClasses[roomColor as keyof typeof roomColorClasses] ?? "bg-grey"
+	);
+}
 
 export default async function AdminPage() {
 	const copy = getDictionary(await getRequestLocale());
@@ -43,7 +41,10 @@ export default async function AdminPage() {
 			</div>
 
 			{rows.length === 0 ? (
-				<p className="mt-8 text-ink-300">{copy.adminEmptySessions}</p>
+				<div className="mt-8 flex items-center gap-4">
+					<p className="text-ink-300">{copy.adminEmptySessions}</p>
+					<DemoSessionsButton label={copy.adminCreateDemo} />
+				</div>
 			) : (
 				<table className="mt-8 w-full border-collapse text-left text-sm">
 					<thead>
@@ -79,7 +80,7 @@ export default async function AdminPage() {
 								</td>
 								<td className="py-3 pr-4">
 									<span
-										className={`mr-2 inline-block h-3 w-3 rounded-full ${dotColors[session.roomColor] ?? "bg-grey"}`}
+										className={`mr-2 inline-block h-3 w-3 rounded-full ${dotColor(session.roomColor)}`}
 									/>
 									{session.room}
 								</td>

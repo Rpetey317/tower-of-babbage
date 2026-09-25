@@ -5,7 +5,7 @@ import { asc, desc, eq, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 
 import { env } from "~/env";
-import { roomColors, sourceTypes } from "~/lib/admin/options";
+import { deviceBackends, roomColors, sourceTypes } from "~/lib/admin/options";
 import {
 	contractVersion,
 	sessionStartRequestSchema,
@@ -14,6 +14,7 @@ import {
 import { mintIngestToken } from "~/lib/contract/token.server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
+import { demoSessions } from "~/server/db/demo-sessions";
 import { glossaryTerms, sessions } from "~/server/db/schema";
 import { latestStats } from "~/server/events/state";
 
@@ -26,7 +27,27 @@ const slug = z
 		"Lowercase letters, digits and hyphens only",
 	);
 
-const sessionInputSchema = z.object({
+/**
+ * `sourceConfig` shape per `sourceType`, mirroring the documented configs in
+ * docs/components/ingest.md. The contract schema itself stays permissive for
+ * `stream_url`/`device` while their producers are backlog; the admin form is
+ * where the canonical fields are enforced.
+ */
+const sourceConfigSchemas = {
+	browser_mic: z.object({}).strict(),
+	file_replay: z
+		.object({ path: z.string().min(1), loop: z.boolean() })
+		.strict(),
+	stream_url: z.object({ url: z.string().min(1) }).strict(),
+	device: z
+		.object({
+			device: z.string().min(1),
+			backend: z.enum(deviceBackends),
+		})
+		.strict(),
+} satisfies Record<(typeof sourceTypes)[number], z.ZodTypeAny>;
+
+const sessionInputObject = z.object({
 	title: z.string().min(1),
 	slug,
 	room: z.string().default(""),
@@ -37,6 +58,36 @@ const sessionInputSchema = z.object({
 	sourceConfig: z.record(z.unknown()).default({}),
 	translationMode: z.enum(["ast", "asr_then_text"]).default("ast"),
 });
+
+/**
+ * Rejects a `sourceConfig` that does not match its `sourceType`. On a partial
+ * update `sourceType` may be absent (the existing pairing is kept); when it is
+ * present, `sourceConfig` must come along so the stored pair stays coherent.
+ */
+function checkSourceConfig(
+	value: { sourceType?: string; sourceConfig?: Record<string, unknown> },
+	ctx: z.RefinementCtx,
+) {
+	if (!value.sourceType) return;
+	if (!value.sourceConfig) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["sourceConfig"],
+			message: "sourceConfig is required when sourceType is set",
+		});
+		return;
+	}
+	const schema =
+		sourceConfigSchemas[value.sourceType as keyof typeof sourceConfigSchemas];
+	const parsed = schema?.safeParse(value.sourceConfig);
+	if (parsed && !parsed.success) {
+		for (const issue of parsed.error.issues) {
+			ctx.addIssue({ ...issue, path: ["sourceConfig", ...issue.path] });
+		}
+	}
+}
+
+const sessionInputSchema = sessionInputObject.superRefine(checkSourceConfig);
 
 type Session = typeof sessions.$inferSelect;
 
@@ -145,8 +196,22 @@ export const adminRouter = createTRPCRouter({
 				}
 			}),
 
+		/** Idempotent: seeds the demo sessions, skipping slugs that exist. */
+		createDemo: protectedProcedure.mutation(() =>
+			db
+				.insert(sessions)
+				.values([...demoSessions])
+				.onConflictDoNothing({ target: sessions.slug })
+				.returning(),
+		),
+
 		update: protectedProcedure
-			.input(z.object({ id: uuid, patch: sessionInputSchema.partial() }))
+			.input(
+				z.object({
+					id: uuid,
+					patch: sessionInputObject.partial().superRefine(checkSourceConfig),
+				}),
+			)
 			.mutation(async ({ input }) => {
 				const [session] = await db
 					.update(sessions)

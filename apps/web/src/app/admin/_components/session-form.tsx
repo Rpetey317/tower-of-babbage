@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import {
+	deviceBackends,
 	languages,
+	roomColorClasses,
 	roomColors,
 	slugify,
 	sourceTypes,
@@ -34,6 +36,14 @@ interface SessionFormLabels {
 	sourceType: string;
 	replayPath: string;
 	replayLoop: string;
+	streamUrl: string;
+	deviceName: string;
+	deviceBackend: string;
+	browserMicHint: string;
+	targetAdd: string;
+	targetMoveUp: string;
+	targetMoveDown: string;
+	targetRemove: string;
 	translationMode: string;
 	createSubmit: string;
 	saveSubmit: string;
@@ -45,9 +55,20 @@ interface SessionFormLabels {
 const inputClass =
 	"rounded-md border border-ink-700 bg-ink-800 px-3 py-2 text-ink-100 focus-visible:outline-2 focus-visible:outline-cyan";
 
+function stringConfigValue(
+	config: Record<string, unknown> | undefined,
+	key: string,
+	fallback = "",
+): string {
+	const value = config?.[key];
+	return typeof value === "string" ? value : fallback;
+}
+
 /**
- * Create/edit session form (M1-05 minimal fields; the full per-type config
- * editor is M2-03). Slug auto-fills from the title until edited manually.
+ * Create/edit session form. The slug auto-fills from the title until edited
+ * manually; `sourceConfig` fields follow the per-type shapes documented in
+ * docs/components/ingest.md and the first target language is the audience
+ * default.
  */
 export function SessionForm({
 	mode,
@@ -76,12 +97,19 @@ export function SessionForm({
 		initial?.sourceType ?? "browser_mic",
 	);
 	const [replayPath, setReplayPath] = useState(
-		typeof initial?.sourceConfig?.path === "string"
-			? initial.sourceConfig.path
-			: "",
+		stringConfigValue(initial?.sourceConfig, "path"),
 	);
 	const [replayLoop, setReplayLoop] = useState(
 		initial?.sourceConfig?.loop === true,
+	);
+	const [streamUrl, setStreamUrl] = useState(
+		stringConfigValue(initial?.sourceConfig, "url"),
+	);
+	const [deviceName, setDeviceName] = useState(
+		stringConfigValue(initial?.sourceConfig, "device", "default"),
+	);
+	const [deviceBackend, setDeviceBackend] = useState(
+		stringConfigValue(initial?.sourceConfig, "backend", "pulse"),
 	);
 	const [translationMode, setTranslationMode] = useState(
 		initial?.translationMode ?? "ast",
@@ -94,19 +122,30 @@ export function SessionForm({
 	const remove = api.admin.sessions.delete.useMutation({ onSettled });
 	const pending = create.isPending || update.isPending || remove.isPending;
 
-	function toggleTarget(language: string) {
-		setTargetLanguages((current) =>
-			current.includes(language)
-				? current.filter((item) => item !== language)
-				: [...current, language],
-		);
+	function moveTarget(index: number, delta: number) {
+		setTargetLanguages((current) => {
+			const other = index + delta;
+			const a = current[index];
+			const b = current[other];
+			if (a === undefined || b === undefined) return current;
+			const next = [...current];
+			next[index] = b;
+			next[other] = a;
+			return next;
+		});
 	}
 
 	function sourceConfig(): Record<string, unknown> {
-		if (sourceType === "file_replay") {
-			return { path: replayPath, loop: replayLoop };
+		switch (sourceType) {
+			case "file_replay":
+				return { path: replayPath, loop: replayLoop };
+			case "stream_url":
+				return { url: streamUrl };
+			case "device":
+				return { device: deviceName, backend: deviceBackend };
+			default:
+				return {};
 		}
-		return {};
 	}
 
 	function submit(event: React.FormEvent) {
@@ -187,20 +226,30 @@ export function SessionForm({
 						value={room}
 					/>
 				</label>
-				<label className="flex flex-col gap-1 text-ink-300 text-sm">
-					{labels.roomColor}
-					<select
-						className={inputClass}
-						onChange={(event) => setRoomColor(event.target.value)}
-						value={roomColor}
-					>
+				<fieldset className="flex flex-col gap-1 text-ink-300 text-sm">
+					<legend>{labels.roomColor}</legend>
+					<div className="flex flex-wrap gap-1.5 py-1">
 						{roomColors.map((color) => (
-							<option key={color} value={color}>
+							<button
+								aria-pressed={roomColor === color}
+								className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs capitalize transition-colors ${
+									roomColor === color
+										? "border-cyan text-ink-100"
+										: "border-ink-700 text-ink-300 hover:border-ink-500"
+								}`}
+								key={color}
+								onClick={() => setRoomColor(color)}
+								type="button"
+							>
+								<span
+									aria-hidden="true"
+									className={`h-3 w-3 rounded-full ${roomColorClasses[color]}`}
+								/>
 								{color}
-							</option>
+							</button>
 						))}
-					</select>
-				</label>
+					</div>
+				</fieldset>
 			</div>
 			<div className="grid grid-cols-2 gap-4">
 				<label className="flex flex-col gap-1 text-ink-300 text-sm">
@@ -219,18 +268,61 @@ export function SessionForm({
 				</label>
 				<fieldset className="flex flex-col gap-1 text-ink-300 text-sm">
 					<legend>{labels.targetLanguages}</legend>
-					<div className="flex gap-3 py-2">
-						{languages.map((language) => (
-							<label className="flex items-center gap-1" key={language}>
-								<input
-									checked={targetLanguages.includes(language)}
-									className="accent-cyan"
-									onChange={() => toggleTarget(language)}
-									type="checkbox"
-								/>
-								{language}
-							</label>
+					<ol className="flex flex-col gap-1 py-1">
+						{targetLanguages.map((language, index) => (
+							<li className="flex items-center gap-2" key={language}>
+								<span className="w-4 text-ink-500 text-xs">{index + 1}.</span>
+								<span className="min-w-8 font-semibold text-ink-100">
+									{language}
+								</span>
+								<button
+									aria-label={labels.targetMoveUp}
+									className="rounded px-1.5 text-ink-300 hover:text-cyan disabled:opacity-30"
+									disabled={index === 0}
+									onClick={() => moveTarget(index, -1)}
+									type="button"
+								>
+									↑
+								</button>
+								<button
+									aria-label={labels.targetMoveDown}
+									className="rounded px-1.5 text-ink-300 hover:text-cyan disabled:opacity-30"
+									disabled={index === targetLanguages.length - 1}
+									onClick={() => moveTarget(index, 1)}
+									type="button"
+								>
+									↓
+								</button>
+								<button
+									aria-label={labels.targetRemove}
+									className="rounded px-1.5 text-ink-300 hover:text-coral"
+									onClick={() =>
+										setTargetLanguages((current) =>
+											current.filter((item) => item !== language),
+										)
+									}
+									type="button"
+								>
+									×
+								</button>
+							</li>
 						))}
+					</ol>
+					<div className="flex flex-wrap gap-1.5">
+						{languages
+							.filter((language) => !targetLanguages.includes(language))
+							.map((language) => (
+								<button
+									className="rounded-md border border-ink-700 px-2 py-1 text-ink-300 text-xs hover:border-ink-500"
+									key={language}
+									onClick={() =>
+										setTargetLanguages((current) => [...current, language])
+									}
+									type="button"
+								>
+									{labels.targetAdd} {language}
+								</button>
+							))}
 					</div>
 				</fieldset>
 			</div>
@@ -264,6 +356,9 @@ export function SessionForm({
 					</select>
 				</label>
 			</div>
+			{sourceType === "browser_mic" && (
+				<p className="text-ink-500 text-sm">{labels.browserMicHint}</p>
+			)}
 			{sourceType === "file_replay" && (
 				<div className="grid grid-cols-2 items-end gap-4">
 					<label className="flex flex-col gap-1 text-ink-300 text-sm">
@@ -284,6 +379,46 @@ export function SessionForm({
 							type="checkbox"
 						/>
 						{labels.replayLoop}
+					</label>
+				</div>
+			)}
+			{sourceType === "stream_url" && (
+				<label className="flex flex-col gap-1 text-ink-300 text-sm">
+					{labels.streamUrl}
+					<input
+						className={inputClass}
+						onChange={(event) => setStreamUrl(event.target.value)}
+						placeholder="rtmp://…"
+						required
+						value={streamUrl}
+					/>
+				</label>
+			)}
+			{sourceType === "device" && (
+				<div className="grid grid-cols-2 gap-4">
+					<label className="flex flex-col gap-1 text-ink-300 text-sm">
+						{labels.deviceName}
+						<input
+							className={inputClass}
+							onChange={(event) => setDeviceName(event.target.value)}
+							placeholder="default"
+							required
+							value={deviceName}
+						/>
+					</label>
+					<label className="flex flex-col gap-1 text-ink-300 text-sm">
+						{labels.deviceBackend}
+						<select
+							className={inputClass}
+							onChange={(event) => setDeviceBackend(event.target.value)}
+							value={deviceBackend}
+						>
+							{deviceBackends.map((backend) => (
+								<option key={backend} value={backend}>
+									{backend}
+								</option>
+							))}
+						</select>
 					</label>
 				</div>
 			)}

@@ -166,6 +166,69 @@ describe("admin.sessions", () => {
 		const list = await caller.admin.sessions.list();
 		expect(list.map((row) => row.slug)).toContain("gran-sala");
 	});
+
+	it.each([
+		["browser_mic", {}],
+		["file_replay", { path: "en-kubernetes-60s.wav", loop: true }],
+		["stream_url", { url: "rtmp://example.test/live" }],
+		["device", { device: "default", backend: "pulse" }],
+	] as const)(
+		"persists the documented sourceConfig for %s",
+		async (sourceType, sourceConfig) => {
+			const caller = await adminCaller();
+			const created = await caller.admin.sessions.create({
+				title: `Sala ${sourceType}`,
+				slug: `sala-${sourceType.replace("_", "-")}`,
+				sourceLanguage: "en",
+				targetLanguages: ["es"],
+				sourceType,
+				sourceConfig,
+			});
+			if (!created) throw new Error("create returned no session");
+			expect(created.sourceType).toBe(sourceType);
+			expect(created.sourceConfig).toEqual(sourceConfig);
+		},
+	);
+
+	it("rejects a sourceConfig that does not match the sourceType", async () => {
+		const caller = await adminCaller();
+		await expect(
+			caller.admin.sessions.create({
+				title: "Sala sin path",
+				slug: "sala-sin-path",
+				sourceLanguage: "en",
+				targetLanguages: ["es"],
+				sourceType: "file_replay",
+				sourceConfig: {},
+			}),
+		).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+		await expect(
+			caller.admin.sessions.update({
+				id: sessionId,
+				patch: { sourceType: "device" },
+			}),
+		).rejects.toMatchObject({ code: "BAD_REQUEST" });
+	});
+
+	it("seeds the demo sessions idempotently", async () => {
+		const caller = await adminCaller();
+		const created = await caller.admin.sessions.createDemo();
+		expect(created.map((row) => row.slug).sort()).toEqual([
+			"demo-en",
+			"demo-es",
+		]);
+
+		const demo = created.find((row) => row.slug === "demo-en");
+		expect(demo?.sourceType).toBe("file_replay");
+		expect(demo?.sourceConfig).toEqual({
+			path: "en-kubernetes-60s.wav",
+			loop: false,
+		});
+
+		const again = await caller.admin.sessions.createDemo();
+		expect(again).toHaveLength(0);
+	});
 });
 
 describe("admin.sessions.start", () => {
