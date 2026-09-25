@@ -199,6 +199,7 @@ Consequences. Replay sessions self-complete with correct tail latency and a
 clean final status; `ffmpeg_exit` appears at two levels (info for natural
 EOF, error for real failures). Live sources (browser mic, stream URLs) are
 unaffected — their producers only return on cancellation.
+
 ## ADR-014: Video served by a slug-scoped media route, cues keyed to `currentTime`
 
 Context. M7-01 needs the browser to play the same video file the pipeline
@@ -217,3 +218,20 @@ Consequences. Only files referenced by a session's source are reachable over
 HTTP; `MEDIA_DIR` must point at the fixture tree (default matches the repo
 layout). Live viewing is "press play whenever", not locked to run start —
 segments produced before the viewer seeks are simply all available.
+
+## ADR-015: Profile `all` is the application stack only
+
+Context. M2-05 needed `docker compose --profile all up` to work on any clean
+machine. The Vulkan `llama` service requires `/dev/dri`, which Docker Desktop
+on WSL2 does not provide (`/dev/dxg` instead), so including `llama` in `all`
+made the profile fail on exactly the laptops it will be verified on — and the
+Gemini path (ADR-011) never needs it.
+
+Decision. `all` runs `postgres`, `web` and `pipeline`. Local inference joins
+the stack by combining profiles: `--profile all --profile infra` (Vulkan) or
+`--profile all --profile cpu`. `llama` keeps the `infra` profile,
+`llama-cpu` keeps `cpu`.
+
+Consequences. The acceptance run works with only `PROVIDER=mock` and no GPU
+or model download. Event deployments that self-host inference add one flag.
+Docs (`deployment.md`, `stack.md`) were updated to match.

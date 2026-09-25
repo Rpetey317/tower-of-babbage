@@ -118,7 +118,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M2-04** · infra · M · deps M2-01, M1-14 · `todo`
   `scripts/bench-latency.sh`; run on the demo machine with the Gemini provider with 1, 2 and 4 replay sessions; fill the capacity table in [deployment.md](deployment.md).
   Done when: the table has measured numbers and the script is reproducible.
-- **M2-05** · infra · M · deps M1-13 · `todo`
+- **M2-05** · infra · M · deps M1-13 · `done`
   Compose profile `all`: `apps/web/Dockerfile` (standalone), `services/pipeline/Dockerfile`, health checks, migrations at web start, documented `PUBLIC_*` variables.
   Done when: `docker compose -f infra/compose.yml --profile all up` on a clean machine serves the audience page and `make smoke` passes against it.
 
@@ -160,7 +160,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M6-02** · web · M · deps M1-04 · `done`
   Full `es`/`en` interface coverage for audience, overlay and admin; locale resolution order; parity test.
   Done when: parity test passes; `?hl=en` and the toggle switch every visible string.
-- **M6-03** · fixtures · S · deps M6-01, M0-07 · `todo`
+- **M6-03** · fixtures · S · deps M6-01, M0-07 · `done`
   `pt-sample-30s` fixture with ground truth; quality check `pt -> es` recorded in the issue and in [languages.md](components/languages.md).
   Done when: captions are Portuguese and Spanish respectively; WER recorded.
 

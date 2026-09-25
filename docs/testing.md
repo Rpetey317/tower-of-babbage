@@ -29,7 +29,7 @@ Commands: `make test` (unit and route tests), `make lint`, `make smoke`.
 | `en-kubernetes-60s.wav` | 60 s, English, technical talk excerpt read aloud, 16 kHz mono |
 | `en-glossary-30s.wav` | 30 s, English, repeats `kubectl`, `etcd`, `Nerdearla` for the glossary quality check (`scripts/glossary-quality.mjs`) |
 | `es-charla-60s.wav` | 60 s, Spanish (Rioplatense), same kind of content |
-| `pt-sample-30s.wav` | 30 s, Portuguese, for M6 |
+| `pt-sample-30s.wav` | 30 s, Portuguese (Brazil), for the pt language quality check (`scripts/language-quality.mjs`) |
 | `<name>.txt` | Ground-truth transcript, one paragraph |
 | `<name>.mock.txt` | Lines the mock provider returns for successive chunks |
 | `LICENSES.md` | Provenance and license of every sample |
@@ -47,8 +47,12 @@ corpora are acceptable only with a permissive license noted in `LICENSES.md`
 ## Smoke test (`scripts/smoke.sh`)
 
 Preconditions: Postgres up, web running on `:3000`, pipeline running with
-`PROVIDER=mock` on `:8090`, `ADMIN_PASSWORD` and `SHARED_SECRET` exported. The
-script wraps `scripts/smoke.mjs` (Node 22, no dependencies):
+`PROVIDER=mock` on `:8090`, `ADMIN_PASSWORD` and `SHARED_SECRET` exported.
+When running against the compose `all` stack the wrapper fills any unset
+variable (`ADMIN_PASSWORD`, `SHARED_SECRET`, `WEB_URL` from `PUBLIC_WEB_URL`,
+`PIPELINE_URL` from `PUBLIC_PIPELINE_WS_URL`) from `infra/.env`; exported
+values always win. The script wraps `scripts/smoke.mjs` (Node 22, no
+dependencies):
 
 1. Log in at `/admin/login`, keep the cookie.
 2. Create session `smoke-<timestamp>` with `sourceType: file_replay`,
@@ -78,6 +82,11 @@ end-to-end path.
 - `scripts/wer.mjs <exported.txt> <ground-truth.txt>`: word error rate after
   lowercasing and stripping punctuation. Not a gate; recorded in the roadmap
   task notes when tuning chunk sizes or prompts.
+- `scripts/language-quality.mjs <fixture.wav> <source> <target>`: replays a
+  fixture through a real pipeline (default `PROVIDER=gemini`, works with
+  `openai-compat` too) via the control API and a stub events sink, then
+  reports segments, latency percentiles and WER. Per-language-pair variant of
+  `scripts/glossary-quality.mjs`; no web app or database needed.
 
 ## Latency benchmark
 
