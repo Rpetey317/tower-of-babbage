@@ -196,7 +196,7 @@ export const segmentsRouter = createTRPCRouter({
 					}
 					const item = queue.shift() as Item;
 					if (item.type === "ping") {
-						yield tracked("ping", { type: "ping" });
+						yield tracked("ping", { type: "ping" } as const);
 					} else if (item.type === "segment") {
 						if (input.languages.includes(item.language)) {
 							yield tracked(segmentEventId(item), item);

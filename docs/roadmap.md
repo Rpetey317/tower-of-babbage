@@ -60,7 +60,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M1-03** · web · M · deps M1-02 · `done`
   `server/events/bus.ts`, routers `sessions` (`list`, `bySlug`) and `segments` (`recent`, `onSegment` SSE with `tracked` ids and catch-up).
   Done when: unit tests for id encoding and catch-up; `curl -N` on the subscription prints events published through the events endpoint.
-- **M1-04** · web · L · deps M1-03 · `todo`
+- **M1-04** · web · L · deps M1-03 · `done`
   Audience pages per [audience-web.md](components/audience-web.md): `/` session list with room colors, `/s/[slug]` caption view with language and mode switches, font size control, connection pill, chunk-merging reducer, minimal `es`/`en` dictionaries.
   Done when: reducer tests pass; manual check with the mock provider on phone and desktop; Lighthouse accessibility score at least 95 on `/s/demo-en`.
 - **M1-05** · web · L · deps M1-01, M0-05 · `todo`
