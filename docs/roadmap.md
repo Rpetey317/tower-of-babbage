@@ -63,7 +63,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M1-04** · web · L · deps M1-03 · `done`
   Audience pages per [audience-web.md](components/audience-web.md): `/` session list with room colors, `/s/[slug]` caption view with language and mode switches, font size control, connection pill, chunk-merging reducer, minimal `es`/`en` dictionaries.
   Done when: reducer tests pass; manual check with the mock provider on phone and desktop; Lighthouse accessibility score at least 95 on `/s/demo-en`.
-- **M1-05** · web · L · deps M1-01, M0-05 · `todo`
+- **M1-05** · web · L · deps M1-01, M0-05 · `done`
   Admin foundation per [admin-panel.md](components/admin-panel.md): login with cookie, middleware, `protectedProcedure`, `admin.sessions.*` CRUD, `start` and `stop` calling the control API, `ingestToken`, minimal `/admin` list with start/stop buttons, `/admin/sessions/new` and `/admin/sessions/[id]` forms.
   Done when: cookie tests pass; `start` request body matches `session-start.request.json` (mocked fetch); manual: create, start, stop against the running pipeline.
 - **M1-06** · web · M · deps M1-05 · `todo`
