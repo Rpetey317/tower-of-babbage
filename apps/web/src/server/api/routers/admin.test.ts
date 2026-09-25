@@ -299,6 +299,229 @@ describe("admin.sessions.start", () => {
 		expect(session?.lastError).toContain("pipeline 400");
 		expect(calls).toHaveLength(1);
 	});
+
+	it("dedupes glossary terms across scopes and caps at 40", async () => {
+		await db.insert(glossaryTerms).values({
+			sessionId,
+			term: "Kubernetes",
+			translation: "Kube",
+		});
+		await db.insert(glossaryTerms).values(
+			[
+				"kubernetes", // duplicate of the session term: must lose
+				...Array.from({ length: 45 }, (_, i) => `g-${i}`),
+			].map((term) => ({
+				sessionId: null as string | null,
+				term,
+				translation: null,
+			})),
+		);
+		const calls = stubPipeline(202, {
+			runId: "5c3b3b4e-1c1e-4a2e-9f0d-9a3f5b1e2d77",
+			status: "starting",
+		});
+
+		const caller = await adminCaller();
+		await caller.admin.sessions.start({ id: sessionId });
+
+		const glossary = calls[0]?.body.glossary as {
+			term: string;
+			translation: string | null;
+		}[];
+		expect(glossary).toHaveLength(40);
+		expect(glossary[0]).toEqual({ term: "Kubernetes", translation: "Kube" });
+		expect(
+			glossary.filter((item) => item.term.toLowerCase() === "kubernetes"),
+		).toHaveLength(1);
+	});
+});
+
+describe("admin.glossary", () => {
+	it("lists terms per scope", async () => {
+		await db.insert(glossaryTerms).values([
+			{ sessionId, term: "Nerdearla" },
+			{ sessionId: null, term: "kubectl" },
+		]);
+
+		const caller = await adminCaller();
+		const scoped = await caller.admin.glossary.list({ sessionId });
+		const global = await caller.admin.glossary.list({});
+		expect(scoped.map((row) => row.term)).toEqual(["Nerdearla"]);
+		expect(global.map((row) => row.term)).toEqual(["kubectl"]);
+	});
+
+	it("upserts by term within a scope instead of duplicating", async () => {
+		const caller = await adminCaller();
+		const first = await caller.admin.glossary.upsert({
+			sessionId: null,
+			term: "Kubernetes",
+		});
+		const again = await caller.admin.glossary.upsert({
+			sessionId: null,
+			term: "kubernetes",
+			translation: "kube",
+		});
+		expect(again.term?.id).toBe(first.term?.id);
+
+		const global = await caller.admin.glossary.list({});
+		expect(global).toHaveLength(1);
+		expect(global[0]?.translation).toBe("kube");
+
+		const scoped = await caller.admin.glossary.upsert({
+			sessionId,
+			term: "KUBERNETES",
+		});
+		expect(scoped.term?.id).not.toBe(first.term?.id);
+	});
+
+	it("updates an existing term by id", async () => {
+		const caller = await adminCaller();
+		const created = await caller.admin.glossary.upsert({
+			sessionId: null,
+			term: "etcd",
+		});
+		const updated = await caller.admin.glossary.upsert({
+			id: created.term?.id,
+			term: "etcd",
+			notes: "key-value store",
+		});
+		expect(updated.term?.notes).toBe("key-value store");
+	});
+
+	it("rejects a term for an unknown session", async () => {
+		const caller = await adminCaller();
+		await expect(
+			caller.admin.glossary.upsert({
+				sessionId: "5c3b3b4e-1c1e-4a2e-9f0d-9a3f5b1e2d77",
+				term: "etcd",
+			}),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+	});
+
+	it("bulk-imports pasted terms and skips existing ones", async () => {
+		await db.insert(glossaryTerms).values({ sessionId, term: "kubectl" });
+
+		const caller = await adminCaller();
+		const result = await caller.admin.glossary.addMany({
+			sessionId,
+			text: "kubectl = kube ctl\nNerdearla\netcd\n",
+		});
+		expect(result.added).toBe(2);
+		expect(result.skipped).toBe(1);
+
+		const terms = await caller.admin.glossary.list({ sessionId });
+		expect(terms).toHaveLength(3);
+		expect(terms[0]?.term).toBe("kubectl");
+		expect(terms.map((row) => row.term)).toEqual(
+			expect.arrayContaining(["kubectl", "Nerdearla", "etcd"]),
+		);
+	});
+
+	it("deletes a term", async () => {
+		const caller = await adminCaller();
+		const created = await caller.admin.glossary.upsert({
+			sessionId: null,
+			term: "etcd",
+		});
+		const id = created.term?.id;
+		if (!id) throw new Error("upsert returned no term");
+
+		await caller.admin.glossary.delete({ id });
+		expect(await caller.admin.glossary.list({})).toHaveLength(0);
+		await expect(caller.admin.glossary.delete({ id })).rejects.toMatchObject({
+			code: "NOT_FOUND",
+		});
+	});
+
+	it("pushes the merged glossary to the pipeline when the session is running", async () => {
+		await db
+			.update(sessions)
+			.set({ status: "running" })
+			.where(eq(sessions.id, sessionId));
+		await db.insert(glossaryTerms).values([
+			{ sessionId, term: "Nerdearla" },
+			{ sessionId: null, term: "kubectl", translation: "kube ctl" },
+		]);
+		const calls = stubPipeline(200, { count: 3 });
+
+		const caller = await adminCaller();
+		const result = await caller.admin.glossary.upsert({
+			sessionId,
+			term: "etcd",
+		});
+		expect(result.liveSync).toBe("ok");
+
+		const put = calls.find((call) => call.method === "PUT");
+		expect(put?.url).toBe(
+			`${env.PIPELINE_URL}/v1/sessions/${sessionId}/glossary`,
+		);
+		expect(put?.authorization).toBe(`Bearer ${env.SHARED_SECRET}`);
+		expect(put?.body).toEqual({
+			glossary: [
+				{ term: "Nerdearla", translation: null },
+				{ term: "etcd", translation: null },
+				{ term: "kubectl", translation: "kube ctl" },
+			],
+		});
+	});
+
+	it("pushes a global change to every session with an active run", async () => {
+		const otherId = "5c3b3b4e-1c1e-4a2e-9f0d-9a3f5b1e2d77";
+		await db.insert(sessions).values({
+			id: otherId,
+			slug: "otra-sala",
+			title: "Otra Sala",
+			sourceLanguage: "en",
+			targetLanguages: ["es"],
+			sourceType: "browser_mic",
+			sourceConfig: {},
+			status: "running",
+		});
+		await db
+			.update(sessions)
+			.set({ status: "running" })
+			.where(eq(sessions.id, sessionId));
+		const calls = stubPipeline(200, { count: 1 });
+
+		const caller = await adminCaller();
+		const result = await caller.admin.glossary.addMany({
+			sessionId: null,
+			text: "etcd",
+		});
+		expect(result.liveSync).toBe("ok");
+
+		const puts = calls.filter((call) => call.method === "PUT");
+		expect(puts.map((call) => call.url).sort()).toEqual([
+			`${env.PIPELINE_URL}/v1/sessions/${sessionId}/glossary`,
+			`${env.PIPELINE_URL}/v1/sessions/${otherId}/glossary`,
+		]);
+	});
+
+	it("skips the live push when nothing is running", async () => {
+		const calls = stubPipeline(200, { count: 0 });
+		const caller = await adminCaller();
+		const result = await caller.admin.glossary.upsert({
+			sessionId,
+			term: "etcd",
+		});
+		expect(result.liveSync).toBe("skipped");
+		expect(calls).toHaveLength(0);
+	});
+
+	it("tolerates the pipeline rejecting the live push", async () => {
+		await db
+			.update(sessions)
+			.set({ status: "running" })
+			.where(eq(sessions.id, sessionId));
+		stubPipeline(404, { error: "not_running" });
+
+		const caller = await adminCaller();
+		const result = await caller.admin.glossary.upsert({
+			sessionId,
+			term: "etcd",
+		});
+		expect(result.liveSync).toBe("failed");
+	});
 });
 
 describe("admin.sessions.stop", () => {

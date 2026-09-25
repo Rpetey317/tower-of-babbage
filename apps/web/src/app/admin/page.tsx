@@ -30,12 +30,20 @@ export default async function AdminPage() {
 				<h1 className="font-display text-4xl uppercase tracking-wide">
 					{copy.adminDashboardTitle}
 				</h1>
-				<Link
-					className="rounded-md bg-violet px-4 py-2 font-semibold text-ink-100 transition-colors hover:bg-violet-hover"
-					href="/admin/sessions/new"
-				>
-					{copy.adminNewSession}
-				</Link>
+				<div className="flex items-center gap-3">
+					<Link
+						className="rounded-md border border-ink-700 px-4 py-2 font-semibold text-ink-300 transition-colors hover:border-ink-500"
+						href="/admin/glossary"
+					>
+						{copy.adminGlossaryNav}
+					</Link>
+					<Link
+						className="rounded-md bg-violet px-4 py-2 font-semibold text-ink-100 transition-colors hover:bg-violet-hover"
+						href="/admin/sessions/new"
+					>
+						{copy.adminNewSession}
+					</Link>
+				</div>
 			</div>
 
 			<PipelineHealth copy={copy} />

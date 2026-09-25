@@ -1,13 +1,15 @@
-import { desc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getDictionary } from "~/lib/i18n";
 import { getRequestLocale } from "~/lib/i18n/server";
+import { mergedGlossary } from "~/server/api/routers/admin";
 import { db } from "~/server/db";
-import { sessionEvents, sessions } from "~/server/db/schema";
+import { glossaryTerms, sessionEvents, sessions } from "~/server/db/schema";
 
 import { ExportLinks } from "../../_components/export-links";
+import { GlossaryEditor } from "../../_components/glossary-editor";
 import { SessionActions } from "../../_components/session-actions";
 import { SessionEventsLog } from "../../_components/session-events-log";
 import {
@@ -34,6 +36,13 @@ export default async function SessionPage({
 		.where(eq(sessionEvents.sessionId, session.id))
 		.orderBy(desc(sessionEvents.createdAt), desc(sessionEvents.id))
 		.limit(100);
+
+	const sessionTerms = await db
+		.select()
+		.from(glossaryTerms)
+		.where(eq(glossaryTerms.sessionId, session.id))
+		.orderBy(asc(glossaryTerms.createdAt), asc(glossaryTerms.id));
+	const effectiveGlossary = await mergedGlossary(session.id);
 
 	const initial: SessionFormValues = {
 		title: session.title,
@@ -128,6 +137,32 @@ export default async function SessionPage({
 				mode="edit"
 				sessionId={session.id}
 			/>
+			<h2 className="mt-8 font-display text-2xl uppercase tracking-wide">
+				{copy.adminGlossarySessionHeading}
+			</h2>
+			<p className="mt-1 text-ink-500 text-xs">{copy.adminGlossaryLiveHint}</p>
+			<GlossaryEditor
+				copy={copy}
+				initialTerms={sessionTerms}
+				sessionId={session.id}
+			/>
+			<h3 className="mt-6 font-display text-xl uppercase tracking-wide">
+				{copy.adminGlossaryEffectiveHeading}
+			</h3>
+			{effectiveGlossary.length === 0 ? (
+				<p className="mt-2 text-ink-300 text-sm">{copy.adminGlossaryEmpty}</p>
+			) : (
+				<ul className="mt-2 columns-2 gap-8 text-sm">
+					{effectiveGlossary.map((item) => (
+						<li className="py-0.5" key={item.term.toLowerCase()}>
+							<span className="font-semibold text-ink-100">{item.term}</span>
+							{item.translation && (
+								<span className="text-ink-300"> → {item.translation}</span>
+							)}
+						</li>
+					))}
+				</ul>
+			)}
 			<SessionEventsLog
 				copy={copy}
 				initialEvents={events}

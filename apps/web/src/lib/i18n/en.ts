@@ -116,4 +116,22 @@ export const en = {
 	adminAlarmQueue: "Queue above 2: inference is too slow for this session",
 	adminAlarmLatency: "p95 above 10 s",
 	adminAlarmDropped: "Chunks were dropped",
+
+	adminCancel: "Cancel",
+	adminGlossaryNav: "Glossary",
+	adminGlossaryTitle: "Global glossary",
+	adminGlossarySessionHeading: "Session glossary",
+	adminGlossaryLiveHint:
+		"Changes are pushed to the session while it is running.",
+	adminGlossaryEffectiveHeading: "Effective glossary (session + global)",
+	adminGlossaryEmpty: "No terms yet.",
+	adminGlossaryTerm: "Term",
+	adminGlossaryTranslation: "Translation",
+	adminGlossaryTranslationHint:
+		"Empty translation: the term is spelled as written and kept untranslated.",
+	adminGlossaryNotes: "Notes",
+	adminGlossaryBulkLabel: "Bulk paste",
+	adminGlossaryBulkHint:
+		"One term per line; `term = translation` to pin a translation. Duplicates are skipped.",
+	adminGlossaryBulkSubmit: "Import",
 } satisfies Record<keyof typeof es, string>;

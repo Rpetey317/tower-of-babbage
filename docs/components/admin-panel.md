@@ -36,7 +36,7 @@ operator page must also work on a laptop next to the stage.
 | `sessions.start({ id })` | Generates `runId`, sets `starting`, `currentRunId`, `startedAt`; calls `POST /v1/sessions/{id}/start` with languages, source, mode and merged glossary (session terms then global). On pipeline error sets `error` with the message. |
 | `sessions.stop({ id })` | Sets `stopping`, calls `POST /v1/sessions/{id}/stop` |
 | `ingestToken({ sessionId })` | Returns a 10-minute ingest token (contract section 5) |
-| `glossary.list({ sessionId? })`, `glossary.upsert(term)`, `glossary.delete({ id })` | Terms; when the session is running, also `PUT /v1/sessions/{id}/glossary` (M4) |
+| `glossary.list({ sessionId? })`, `glossary.upsert(term)`, `glossary.addMany({ sessionId?, text })`, `glossary.delete({ id })` | Terms, global (`sessionId` null) or per session; `addMany` parses bulk paste (`term = translation` per line, duplicates skipped). Mutations return `liveSync` and push the merged list to `PUT /v1/sessions/{id}/glossary` for every session with an active run (best effort until M4-02) |
 | `events.recent({ sessionId, limit })` | `session_events` rows |
 | `pipelineHealth()` | Proxies `GET /healthz` |
 | `onStatus()` | Subscription: `status` and `log` events for all sessions plus watchdog changes |

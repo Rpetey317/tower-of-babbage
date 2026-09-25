@@ -133,7 +133,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 
 ## M4: Glossary
 
-- **M4-01** · web · M · deps M1-05 · `todo`
+- **M4-01** · web · M · deps M1-05 · `done`
   `glossary_terms` CRUD for global and session scope, bulk paste (`term = translation`), merge/dedupe/cap into the start request, session page editor and `/admin/glossary`.
   Done when: merge logic tests pass; start request contains the merged list.
 - **M4-02** · pipeline · S · deps M1-12 · `todo`
@@ -145,7 +145,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 
 ## M5: OBS overlay
 
-- **M5-01** · web · M · deps M1-03 · `todo`
+- **M5-01** · web · M · deps M1-03 · `done`
   `/overlay/[slug]` per [obs-overlay.md](components/obs-overlay.md): transparent background, parameters, outline text, silent reconnect, empty when not live.
   Done when: manual check over a checkered background and in OBS Browser Source during a mock run; at most `lines` lines visible.
 - **M5-02** · docs · S · deps M5-01 · `todo`

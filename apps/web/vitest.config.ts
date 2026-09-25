@@ -8,6 +8,9 @@ export default defineConfig({
 			"~": fileURLToPath(new URL("./src", import.meta.url)),
 		},
 	},
+	// tsconfig keeps `jsx: preserve` for Next; tests need the automatic
+	// runtime to render components without a React import.
+	esbuild: { jsx: "automatic" },
 	test: {
 		// Test files share the same database; run them sequentially.
 		fileParallelism: false,
