@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -11,9 +12,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/chunk"
 	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/config"
 	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/control"
+	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/emit"
 	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/ingest"
+	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/provider"
+	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/session"
 )
 
 func main() {
@@ -37,9 +42,21 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	// The ingest endpoint is live but reports 4004 until the session runner
-	// (M1-11) supplies a Sessions registry.
-	ingestWS := ingest.NewHandler(nil, cfg.SharedSecret, nil, logger)
+	speech, err := buildProvider(cfg)
+	if err != nil {
+		return err
+	}
+	events := emit.NewClient(emit.Config{
+		WebURL:       cfg.WebURL,
+		SharedSecret: cfg.SharedSecret,
+		Flush:        cfg.EventsFlush,
+	}, logger)
+	registry := session.NewRegistry(session.Config{
+		FixturesDir:    cfg.FixturesDir,
+		Chunk:          chunk.Config{Min: cfg.ChunkMin, Target: cfg.ChunkTarget, Max: cfg.ChunkMax},
+		MaxConcurrency: cfg.InferenceMaxConcurrency,
+	}, speech, events, logger)
+	ingestWS := ingest.NewHandler(registry, cfg.SharedSecret, events, logger)
 	server := &http.Server{Handler: control.NewHandler(cfg, ingestWS), ReadHeaderTimeout: 5 * time.Second}
 	serveDone := make(chan error, 1)
 	go func() { serveDone <- server.Serve(listener) }()
@@ -61,7 +78,28 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		if err := <-serveDone; err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return err
 		}
+		events.Close()
 		logger.Info("pipeline stopped")
 		return nil
+	}
+}
+
+// buildProvider picks the SpeechProvider from PROVIDER. The gemini provider
+// lands with M1-16; until then it fails fast at startup.
+func buildProvider(cfg config.Config) (provider.SpeechProvider, error) {
+	switch cfg.Provider {
+	case "mock":
+		return provider.NewMock(cfg.MockLatency, nil), nil
+	case "openai-compat":
+		return provider.NewOpenAICompat(provider.OpenAICompatConfig{
+			URLs:           cfg.InferenceURLs,
+			Model:          cfg.InferenceModel,
+			AudioFormat:    cfg.InferenceAudioFormat,
+			MaxConcurrency: cfg.InferenceMaxConcurrency,
+			Timeout:        cfg.InferenceTimeout,
+			Temperature:    cfg.InferenceTemperature,
+		})
+	default:
+		return nil, fmt.Errorf("provider %q is not implemented yet", cfg.Provider)
 	}
 }
