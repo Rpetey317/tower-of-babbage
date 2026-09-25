@@ -24,6 +24,12 @@ The slug is the only thing venue signage needs to show
   scrolled up.
 - `both` mode renders each chunk as original in muted text and translation in
   full contrast underneath.
+- Attributed chunks show a localized `Speaker n` label over the text, and the
+  text is tinted with the speaker's accent. The label (`S1`, `S2`, ...) maps
+  deterministically to the accent tokens in [branding.md](../branding.md)
+  (`S1` -> `cyan`, `S2` -> `violet`, cycling), so the same speaker keeps the
+  same color for the whole session. Chunks without a `speaker` field render
+  exactly as before.
 - Segments arriving out of order are placed by `chunkIndex`; late translations
   fill in beside their original.
 - Connection state pill: live, reconnecting, session not live. On `runId`

@@ -49,6 +49,7 @@ segment plus one `translation` segment per target language.
 | `kind` | enum | `original`, `translation` |
 | `language` | text | Language of `text` |
 | `text` | text | |
+| `speaker` | text, nullable | Provider-assigned label like `S1`; shared by the original and its translations of one chunk (contract v2) |
 | `isFinal` | bool | Always `true` in M1; partials are backlog |
 | `startMs`, `endMs` | int | Audio time since run start |
 | `emittedAt` | timestamptz | Wall clock when the pipeline emitted it |
@@ -130,6 +131,7 @@ export const segments = pgTable(
     kind: segmentKindEnum().notNull(),
     language: text().notNull(),
     text: text().notNull(),
+    speaker: text(),
     isFinal: boolean("is_final").notNull().default(true),
     startMs: integer("start_ms").notNull(),
     endMs: integer("end_ms").notNull(),

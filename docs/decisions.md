@@ -215,3 +215,24 @@ the stack by combining profiles: `--profile all --profile infra` (Vulkan) or
 Consequences. The acceptance run works with only `PROVIDER=mock` and no GPU
 or model download. Event deployments that self-host inference add one flag.
 Docs (`deployment.md`, `stack.md`) were updated to match.
+## ADR-015: Speaker labels come from prompt tags, not diarization
+
+Context. M7-02 needed speaker attribution on captions. Real diarization
+(pyannote-style) needs a separate model pass with cross-chunk speaker state,
+which the chunker/provider boundary does not carry; it is also another model
+to host on the local path. Meanwhile the AST/ASR models already hear the
+chunk and can name the voice they transcribed.
+
+Decision. The ASR and AST prompts ask the model to prefix its transcript with
+a speaker tag (`S1: `, `S2: `, ...) numbering voices in order of appearance.
+The provider strips the tag into `Transcript.Speaker`; the runner copies it
+onto the `speaker` field of the chunk's original and translation events
+(contract v2). The web app maps `S<n>` deterministically onto the branding
+accent palette (`S1` -> `cyan`, cycling).
+
+Consequences. Speaker identity is best-effort within a chunk: the model sees
+one chunk at a time, so the same voice can receive different labels across a
+session, and overlapping speakers yield one tag. The contract field stays
+optional so providers that never tag simply omit it. When a real diarization
+pass lands (backlog), it can write the same `speaker` field without touching
+the web app.

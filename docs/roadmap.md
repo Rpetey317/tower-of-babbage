@@ -164,6 +164,18 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
   `pt-sample-30s` fixture with ground truth; quality check `pt -> es` recorded in the issue and in [languages.md](components/languages.md).
   Done when: captions are Portuguese and Spanish respectively; WER recorded.
 
+## M7: Polish
+
+- **M7-01** · web · M · deps M1-04 · `todo`
+  Video playback on the audience page with the caption feed synced to it.
+- **M7-02** · contract, pipeline, web · M · deps M1-12 · `done`
+  Optional `speaker` label on segment events (contract v2); providers emit
+  `S1`, `S2`, ... tags; the audience view renders a localized speaker label
+  and tints each speaker in a branding accent color.
+  Done when: fixture round-trips cover `speaker` on both sides, the mock
+  rotates speakers in pairs, speaker colors are stable and token-based, and
+  unattributed segments render unchanged.
+
 ## Backlog (after the Vibeathon)
 
 Ingest
