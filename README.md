@@ -64,11 +64,15 @@ is only required when running the local Gemma 4 path.
 # 1. Infrastructure: Postgres (make infra-up also starts llama-server, only needed for local inference)
 make infra-up
 
-# 2. Load the pipeline's local development settings
+# 2. Web app settings and database (schema plus demo sessions demo-en/demo-es)
+cp apps/web/.env.example apps/web/.env
+make db-push && pnpm --dir apps/web db:seed
+
+# 3. Load the pipeline's local development settings
 cp services/pipeline/.env.example services/pipeline/.env
 set -a; . services/pipeline/.env; set +a
 
-# 3. Web app and pipeline, in two terminals
+# 4. Web app and pipeline, in two terminals
 make web        # http://localhost:3000, admin at /admin
 make pipeline   # control API on :8090, mock provider by default from .env
 
