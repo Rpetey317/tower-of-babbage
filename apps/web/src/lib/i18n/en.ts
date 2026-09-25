@@ -20,6 +20,9 @@ export const en = {
 	speakerLabel: "Speaker {n}",
 	waitingForCaptions: "Waiting for captions…",
 	jumpToLive: "Jump to live",
+	playbackCaptionLink: "Caption view",
+	playbackNoVideo: "This session has no video to play.",
+	playbackVideoLabel: "Session video",
 
 	homeHeading: "Sessions",
 	emptySessions: "Sessions will appear here.",

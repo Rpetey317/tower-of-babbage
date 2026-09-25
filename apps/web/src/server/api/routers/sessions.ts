@@ -17,6 +17,14 @@ const sessionColumns = {
 	status: sessions.status,
 };
 
+// bySlug adds the source columns so the playback view can locate the video
+// a file_replay session streams (docs/components/playback.md).
+const sessionDetailColumns = {
+	...sessionColumns,
+	sourceType: sessions.sourceType,
+	sourceConfig: sessions.sourceConfig,
+};
+
 export const sessionsRouter = createTRPCRouter({
 	list: publicProcedure.query(() =>
 		db.select(sessionColumns).from(sessions).orderBy(asc(sessions.createdAt)),
@@ -26,7 +34,7 @@ export const sessionsRouter = createTRPCRouter({
 		.input(z.object({ slug: z.string().min(1) }))
 		.query(async ({ input }) => {
 			const [session] = await db
-				.select(sessionColumns)
+				.select(sessionDetailColumns)
 				.from(sessions)
 				.where(eq(sessions.slug, input.slug))
 				.limit(1);

@@ -18,6 +18,9 @@ export const es = {
 	speakerLabel: "Orador {n}",
 	waitingForCaptions: "Esperando subtítulos…",
 	jumpToLive: "Ir a lo último",
+	playbackCaptionLink: "Vista de subtítulos",
+	playbackNoVideo: "Esta sesión no tiene video para reproducir.",
+	playbackVideoLabel: "Video de la sesión",
 
 	homeHeading: "Sesiones",
 	emptySessions: "Las sesiones aparecerán aquí.",

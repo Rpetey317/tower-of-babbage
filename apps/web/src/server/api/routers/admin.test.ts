@@ -293,6 +293,7 @@ describe("admin.sessions", () => {
 		expect(created.map((row) => row.slug).sort()).toEqual([
 			"demo-en",
 			"demo-es",
+			"demo-video",
 		]);
 
 		const demo = created.find((row) => row.slug === "demo-en");
