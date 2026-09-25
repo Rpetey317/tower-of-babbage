@@ -55,7 +55,11 @@ the client can clear its view. SSE keepalive ping every 15 s.
 
 Router `admin` (protected) adds `onStatus()` streaming `status` and `log`
 events for all sessions to the monitoring view; see
-[admin-panel.md](admin-panel.md).
+[admin-panel.md](admin-panel.md). It fans out the `status:*` topic as
+`tracked` items (`<sessionId>:<runId>:<emittedAt>:<seq>`) with a 15 s
+keepalive. There is no `lastEventId` catch-up: status truth lives in
+`sessions`, so the dashboard reconciles through `sessions.list` on a slow
+interval after any reconnect gap.
 
 ## Client model
 

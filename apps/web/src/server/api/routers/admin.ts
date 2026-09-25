@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { TRPCError } from "@trpc/server";
+import { TRPCError, tracked } from "@trpc/server";
 import { asc, desc, eq, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 
@@ -8,6 +8,8 @@ import { env } from "~/env";
 import { deviceBackends, roomColors, sourceTypes } from "~/lib/admin/options";
 import {
 	contractVersion,
+	type Event,
+	healthResponseSchema,
 	sessionStartRequestSchema,
 	sessionStopRequestSchema,
 } from "~/lib/contract";
@@ -15,7 +17,8 @@ import { mintIngestToken } from "~/lib/contract/token.server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
 import { demoSessions } from "~/server/db/demo-sessions";
-import { glossaryTerms, sessions } from "~/server/db/schema";
+import { glossaryTerms, sessionEvents, sessions } from "~/server/db/schema";
+import { subscribe } from "~/server/events/bus";
 import { latestStats } from "~/server/events/state";
 
 const uuid = z.string().uuid();
@@ -371,6 +374,110 @@ export const adminRouter = createTRPCRouter({
 				}
 				return { runId: session.currentRunId, status: "stopping" as const };
 			}),
+	}),
+
+	events: createTRPCRouter({
+		recent: protectedProcedure
+			.input(
+				z.object({
+					sessionId: uuid,
+					limit: z.number().int().positive().max(200).default(100),
+				}),
+			)
+			.query(async ({ input }) => {
+				const [session] = await db
+					.select({ id: sessions.id })
+					.from(sessions)
+					.where(eq(sessions.id, input.sessionId));
+				if (!session) {
+					throw new TRPCError({ code: "NOT_FOUND" });
+				}
+				return db
+					.select()
+					.from(sessionEvents)
+					.where(eq(sessionEvents.sessionId, input.sessionId))
+					.orderBy(desc(sessionEvents.createdAt), desc(sessionEvents.id))
+					.limit(input.limit);
+			}),
+	}),
+
+	/**
+	 * Proxies `GET /healthz` (contract section 2, no auth). Returns
+	 * `{ ok: false }` instead of throwing so the dashboard can poll it and
+	 * render an unreachable state rather than an error boundary.
+	 */
+	pipelineHealth: protectedProcedure.query(async () => {
+		let parsed: ReturnType<typeof healthResponseSchema.safeParse>;
+		try {
+			const response = await fetch(`${env.PIPELINE_URL}/healthz`, {
+				signal: AbortSignal.timeout(3_000),
+			});
+			parsed = healthResponseSchema.safeParse(await response.json());
+		} catch (error) {
+			return {
+				ok: false as const,
+				error: error instanceof Error ? error.message : String(error),
+			};
+		}
+		if (!parsed.success) {
+			return { ok: false as const, error: "invalid healthz response" };
+		}
+		return { ok: true as const, health: parsed.data };
+	}),
+
+	/**
+	 * Streams `status` and `log` events for all sessions (including the
+	 * watchdog's `status_timeout` syntheses) over the `status:*` bus topic.
+	 * No `lastEventId` catch-up: status truth lives in `sessions`, so the
+	 * dashboard reconciles through `sessions.list` after a reconnect.
+	 */
+	onStatus: protectedProcedure.subscription(async function* ({ signal }) {
+		type Item = Event | { type: "ping" };
+		const queue: Item[] = [];
+		let wake: (() => void) | undefined;
+		const push = (item: Item) => {
+			queue.push(item);
+			wake?.();
+		};
+
+		const iterator = subscribe("status:*")[Symbol.asyncIterator]();
+		const pump = (async () => {
+			for (;;) {
+				const { done, value } = await iterator.next();
+				if (done) return;
+				push(value);
+			}
+		})();
+		const timer = setInterval(() => push({ type: "ping" }), 15_000);
+		timer.unref?.();
+
+		let seq = 0;
+		try {
+			for (;;) {
+				if (signal?.aborted) return;
+				if (queue.length === 0) {
+					await new Promise<void>((resolve) => {
+						wake = resolve;
+					});
+					wake = undefined;
+					continue;
+				}
+				const item = queue.shift() as Item;
+				if (item.type === "ping") {
+					yield tracked("ping", { type: "ping" } as const);
+				} else {
+					seq += 1;
+					yield tracked(
+						`${item.sessionId}:${item.runId}:${item.emittedAt}:${seq}`,
+						item,
+					);
+				}
+			}
+		} finally {
+			clearInterval(timer);
+			await iterator.return?.();
+			await pump;
+		}
 	}),
 
 	ingestToken: protectedProcedure

@@ -6,15 +6,27 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { env } from "~/env";
 import { signAdminCookie } from "~/lib/auth/admin-cookie";
+import type { Event } from "~/lib/contract";
 import { verifyIngestToken } from "~/lib/contract/token.server";
 import { createCaller } from "~/server/api/root";
 import { db } from "~/server/db";
-import { glossaryTerms, sessions } from "~/server/db/schema";
+import { glossaryTerms, sessionEvents, sessions } from "~/server/db/schema";
+import { publish } from "~/server/events/bus";
 
 const startFixture = JSON.parse(
 	readFileSync(
 		new URL(
 			"../../../../../../packages/contract/fixtures/session-start.request.json",
+			import.meta.url,
+		),
+		"utf8",
+	),
+) as Record<string, unknown>;
+
+const healthzFixture = JSON.parse(
+	readFileSync(
+		new URL(
+			"../../../../../../packages/contract/fixtures/healthz.response.json",
 			import.meta.url,
 		),
 		"utf8",
@@ -90,6 +102,7 @@ function stubPipeline(
 }
 
 beforeEach(async () => {
+	await db.delete(sessionEvents);
 	await db.delete(glossaryTerms);
 	await db.delete(sessions);
 	await insertFixtureSession();
@@ -366,5 +379,139 @@ describe("admin.ingestToken", () => {
 		const caller = await adminCaller();
 		const { token } = await caller.admin.ingestToken({ sessionId });
 		expect(verifyIngestToken(token, sessionId, env.SHARED_SECRET)).toBe(true);
+	});
+});
+
+describe("admin.events.recent", () => {
+	async function insertEvents(count: number) {
+		await db.insert(sessionEvents).values(
+			Array.from({ length: count }, (_, i) => ({
+				sessionId,
+				runId: "5c3b3b4e-1c1e-4a2e-9f0d-9a3f5b1e2d77",
+				level: "warn" as const,
+				code: "chunk_dropped",
+				message: `dropped chunk ${i}`,
+			})),
+		);
+	}
+
+	it("returns the latest events for the session, newest first", async () => {
+		await insertEvents(3);
+		const caller = await adminCaller();
+		const events = await caller.admin.events.recent({ sessionId });
+		expect(events.map((row) => row.message)).toEqual([
+			"dropped chunk 2",
+			"dropped chunk 1",
+			"dropped chunk 0",
+		]);
+	});
+
+	it("honours the limit", async () => {
+		await insertEvents(5);
+		const caller = await adminCaller();
+		const events = await caller.admin.events.recent({
+			sessionId,
+			limit: 2,
+		});
+		expect(events).toHaveLength(2);
+		expect(events[0]?.message).toBe("dropped chunk 4");
+	});
+
+	it("throws NOT_FOUND for an unknown session", async () => {
+		const caller = await adminCaller();
+		await expect(
+			caller.admin.events.recent({
+				sessionId: "5c3b3b4e-1c1e-4a2e-9f0d-9a3f5b1e2d77",
+			}),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+	});
+});
+
+describe("admin.pipelineHealth", () => {
+	it("proxies GET /healthz and returns the parsed payload", async () => {
+		const calls = stubPipeline(200, healthzFixture);
+		const caller = await adminCaller();
+		const result = await caller.admin.pipelineHealth();
+		expect(result).toEqual({ ok: true, health: healthzFixture });
+		expect(calls).toHaveLength(1);
+		expect(calls[0]?.url).toBe(`${env.PIPELINE_URL}/healthz`);
+		expect(calls[0]?.method).toBe("GET");
+	});
+
+	it("reports unreachable instead of throwing when the pipeline is down", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async () => {
+				throw new Error("connect ECONNREFUSED");
+			}),
+		);
+		const caller = await adminCaller();
+		const result = await caller.admin.pipelineHealth();
+		expect(result.ok).toBe(false);
+		if (!result.ok) expect(result.error).toContain("ECONNREFUSED");
+	});
+
+	it("reports an invalid body instead of throwing", async () => {
+		stubPipeline(200, { status: "ok", contractVersion: 2 });
+		const caller = await adminCaller();
+		const result = await caller.admin.pipelineHealth();
+		expect(result).toEqual({
+			ok: false,
+			error: "invalid healthz response",
+		});
+	});
+});
+
+describe("admin.onStatus", () => {
+	const runId = "5c3b3b4e-1c1e-4a2e-9f0d-9a3f5b1e2d77";
+
+	it("streams status and log events from the status:* topic", async () => {
+		const caller = await adminCaller();
+		const stream = (await caller.admin.onStatus()) as AsyncIterable<
+			[string, Event | { type: "ping" }, null]
+		>;
+		const iterator = stream[Symbol.asyncIterator]();
+
+		// The generator attaches to the bus when first pulled.
+		const firstPromise = iterator.next();
+		await new Promise((resolve) => setTimeout(resolve, 10));
+
+		const status: Event = {
+			type: "status",
+			sessionId,
+			runId,
+			status: "running",
+			stats: {
+				audioReceivedMs: 43_000,
+				chunksProcessed: 8,
+				chunksDropped: 0,
+				queueDepth: 0,
+				latencyP50Ms: 90,
+				latencyP95Ms: 120,
+				lastError: null,
+			},
+			emittedAt: "2026-09-25T14:03:12.400Z",
+		};
+		const log: Event = {
+			type: "log",
+			sessionId,
+			runId,
+			level: "error",
+			code: "status_timeout",
+			message: "No status event received for 15 s",
+			emittedAt: "2026-09-25T14:03:20.000Z",
+		};
+		publish("status:*", status);
+		publish("status:*", log);
+
+		const first = await firstPromise;
+		expect(first.value[1]).toEqual(status);
+		expect(first.value[0]).toContain(sessionId);
+		expect(first.value[0]).toContain(runId);
+
+		const second = await iterator.next();
+		expect(second.value[1]).toEqual(log);
+
+		await iterator.return?.();
 	});
 });
