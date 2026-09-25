@@ -26,6 +26,7 @@ component you will work on, then the roadmap.
 | [components/glossary.md](components/glossary.md) | Term lists and how they reach the model |
 | [components/obs-overlay.md](components/obs-overlay.md) | Browser-source overlay for OBS and vMix |
 | [components/languages.md](components/languages.md) | Source and target languages, UI locales |
+| [components/playback.md](components/playback.md) | Video playback with captions synchronized to the playhead |
 
 ## Operations and process
 

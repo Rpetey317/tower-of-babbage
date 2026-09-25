@@ -52,8 +52,6 @@ All day-to-day commands go through the root `Makefile` so they are identical for
 | `make lint` | Biome (web) and `go vet` + `staticcheck` (pipeline) |
 | `make smoke` | End-to-end run with the mock provider and a fixture WAV, see [docs/testing.md](docs/testing.md) |
 
-Until M0 lands these targets do not exist yet; M0 tasks create them.
-
 For native Windows inference without `make`, use the `dev.ps1` task runner
 (`.\dev.ps1 model-pull`, `.\dev.ps1 inference`, `.\dev.ps1 transcribe` and
 `.\dev.ps1 test-inference` for the offline suite); see the native Windows

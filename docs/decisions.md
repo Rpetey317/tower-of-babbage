@@ -235,7 +235,8 @@ the stack by combining profiles: `--profile all --profile infra` (Vulkan) or
 Consequences. The acceptance run works with only `PROVIDER=mock` and no GPU
 or model download. Event deployments that self-host inference add one flag.
 Docs (`deployment.md`, `stack.md`) were updated to match.
-## ADR-015: Speaker labels come from prompt tags, not diarization
+
+## ADR-016: Speaker labels come from prompt tags, not diarization
 
 Context. M7-02 needed speaker attribution on captions. Real diarization
 (pyannote-style) needs a separate model pass with cross-chunk speaker state,

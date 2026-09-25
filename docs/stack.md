@@ -14,7 +14,7 @@ Scaffolded with `create-t3-app` (`--CI --appRouter --trpc --tailwind --drizzle -
 | Fonts | `next/font` (self-hosted at build) | Barlow Condensed, Inter, Atkinson Hyperlegible |
 | Auth | Env password + signed HttpOnly cookie | Custom, minimal; see [components/admin-panel.md](components/admin-panel.md) |
 | i18n | Dictionary objects per locale, cookie/`?hl=` selected | No framework; see [components/languages.md](components/languages.md) |
-| Lint/format | Biome | `pnpm lint`, `pnpm format` |
+| Lint/format | Biome | `pnpm --dir apps/web lint`; `pnpm --dir apps/web check:write` to format |
 | Tests | Vitest | Pure functions (export, schemas, token) and route handlers |
 | Package manager | pnpm 10, workspace at repo root | `pnpm-workspace.yaml` includes `apps/*` |
 
@@ -24,10 +24,10 @@ Directory sketch:
 apps/web/src/
   app/                     routes (see components docs for the list)
   server/api/routers/      sessions, segments, admin
-  server/db/               schema.ts, index.ts
-  server/events/           bus.ts (in-memory), ingest-token.ts
-  server/export/           srt.ts, vtt.ts, txt.ts
-  lib/contract/            Zod schemas mirroring docs/contract.md
+  server/db/               schema.ts, index.ts, seed.ts, demo-sessions.ts
+  server/events/           bus.ts (in-memory), state.ts, watchdog.ts
+  server/export/           srt.ts, vtt.ts, txt.ts, cues.ts
+  lib/contract/            Zod schemas and ingest token, mirroring docs/contract.md
   lib/i18n/                dictionaries and helpers
   styles/globals.css       Tailwind theme tokens
 ```
@@ -131,7 +131,7 @@ Pipeline (`services/pipeline/.env`):
 | `INFERENCE_URLS` | `http://localhost:8080` | Comma-separated OpenAI-compatible base URLs |
 | `INFERENCE_MODEL` | `gemma-4` | `model` field sent in requests; llama-server ignores it, vLLM needs the HF id |
 | `INFERENCE_AUDIO_FORMAT` | `input_audio` | `input_audio` (llama.cpp) or `audio_url` (vLLM) |
-| `INFERENCE_MAX_CONCURRENCY` | `2` | In-flight requests per endpoint; match llama-server `--parallel` |
+| `INFERENCE_MAX_CONCURRENCY` | `2` | In-flight provider requests shared across all sessions; local endpoint slots also respect server capacity |
 | `INFERENCE_TIMEOUT_SECONDS` | `20` | Per request |
 | `INFERENCE_TEMPERATURE` | `0.2` | Sampling temperature; `top_p` 0.95 and `top_k` 64 are fixed |
 | `MOCK_LATENCY_MS` | `300` | Simulated inference time for `PROVIDER=mock` |

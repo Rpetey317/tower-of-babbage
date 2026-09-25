@@ -78,8 +78,6 @@ over a test image, the same way the streaming tool composites it over video:
 1. In the **Sources** dock, click `+` > **Browser**. Name it (e.g.
    `Captions`).
 
-   ![Adding a Browser source in OBS](../images/overlay/obs-add-source.png)
-
 2. In the source properties:
    - **URL**: paste the overlay URL.
    - **Width** `1920`, **Height** `1080`, **FPS** `30`.
@@ -89,12 +87,8 @@ over a test image, the same way the streaming tool composites it over video:
    - Check **Refresh browser when scene becomes active** so a stuck
      connection reloads when the scene is re-entered.
 
-   ![Browser source properties with the overlay URL](../images/overlay/obs-browser-source-props.png)
-
 3. The source matches the 1080p canvas, so leave it filling the frame: the
    page already keeps the safe margin. Do not crop or resize it.
-
-   ![OBS preview with captions over the program feed](../images/overlay/obs-preview.png)
 
 ### vMix
 
