@@ -350,6 +350,7 @@ type chunkResult struct {
 	startMs      int64
 	endMs        int64
 	original     string
+	speaker      string            // "" when the provider did not attribute it
 	translations map[string]string // language -> text
 	logs         []logEntry
 }
@@ -399,25 +400,26 @@ func (r *Runner) process(ctx context.Context, ch chunk.Chunk) chunkResult {
 
 	transcript, translations, logs := r.transcribe(ctx, audio, source, targets)
 	res.logs = logs
-	res.original = transcript
+	res.original = transcript.Text
+	res.speaker = transcript.Speaker
 	res.translations = translations
 	return res
 }
 
-func (r *Runner) transcribe(ctx context.Context, audio provider.WAV, source string, targets []string) (string, map[string]string, []logEntry) {
+func (r *Runner) transcribe(ctx context.Context, audio provider.WAV, source string, targets []string) (provider.Transcript, map[string]string, []logEntry) {
 	var logs []logEntry
 	translations := make(map[string]string)
 	glossary := r.glossaryTerms()
 
 	transcript, err := r.asr(ctx, audio, source, targets, &logs, translations)
 	if err != nil {
-		return "", nil, logs
+		return provider.Transcript{}, nil, logs
 	}
 	for _, target := range targets {
 		if _, done := translations[target]; done {
 			continue
 		}
-		text, err := r.callTranslate(ctx, transcript, source, target)
+		text, err := r.callTranslate(ctx, transcript.Text, source, target)
 		if err != nil {
 			logs = append(logs, r.providerError(target, err))
 			continue
@@ -425,7 +427,7 @@ func (r *Runner) transcribe(ctx context.Context, audio provider.WAV, source stri
 		translations[target] = text
 	}
 	if r.cfg.GlossaryEnforce {
-		transcript = provider.EnforceGlossary(transcript, glossary, false)
+		transcript.Text = provider.EnforceGlossary(transcript.Text, glossary, false)
 		for target, text := range translations {
 			translations[target] = provider.EnforceGlossary(text, glossary, true)
 		}
@@ -436,7 +438,7 @@ func (r *Runner) transcribe(ctx context.Context, audio provider.WAV, source stri
 // asr obtains the transcript for the chunk. In ast mode it also fills the
 // first target's translation when the provider's AST output parses; a parse
 // failure logs provider_bad_output and falls back to Transcribe+Translate.
-func (r *Runner) asr(ctx context.Context, audio provider.WAV, source string, targets []string, logs *[]logEntry, translations map[string]string) (string, error) {
+func (r *Runner) asr(ctx context.Context, audio provider.WAV, source string, targets []string, logs *[]logEntry, translations map[string]string) (provider.Transcript, error) {
 	if r.req.TranslationMode == "ast" && len(targets) > 0 {
 		ast, ok, err := r.provider.TranscribeAndTranslate(ctx, audio, provider.ASTRequest{
 			SourceLanguage: source,
@@ -451,7 +453,7 @@ func (r *Runner) asr(ctx context.Context, audio provider.WAV, source string, tar
 			*logs = append(*logs, logEntry{"warn", "provider_bad_output", "AST output could not be parsed; falling back to Transcribe + Translate"})
 		case err != nil:
 			*logs = append(*logs, r.providerError(targets[0], err))
-			return "", err
+			return provider.Transcript{}, err
 		}
 		// ok == false: the backend cannot do AST; fall through to ASR.
 	}
@@ -461,9 +463,9 @@ func (r *Runner) asr(ctx context.Context, audio provider.WAV, source string, tar
 	})
 	if err != nil {
 		*logs = append(*logs, r.providerError(source, err))
-		return "", err
+		return provider.Transcript{}, err
 	}
-	return string(out), nil
+	return out, nil
 }
 
 func (r *Runner) callTranslate(ctx context.Context, text, source, target string) (string, error) {
@@ -503,12 +505,17 @@ func (r *Runner) emitResult(res chunkResult) {
 		latencyMs = 0
 	}
 	r.recordLatency(latencyMs)
+	var speaker *string
+	if res.speaker != "" {
+		speaker = &res.speaker
+	}
 	if res.original != "" {
 		r.events.Segment(r.sessionID, r.req.RunID, contract.SegmentEvent{
 			ChunkIndex: res.index,
 			Kind:       "original",
 			Language:   r.req.SourceLanguage,
 			Text:       res.original,
+			Speaker:    speaker,
 			IsFinal:    true,
 			StartMs:    int(res.startMs),
 			EndMs:      int(res.endMs),
@@ -525,6 +532,7 @@ func (r *Runner) emitResult(res chunkResult) {
 			Kind:       "translation",
 			Language:   target,
 			Text:       text,
+			Speaker:    speaker,
 			IsFinal:    true,
 			StartMs:    int(res.startMs),
 			EndMs:      int(res.endMs),

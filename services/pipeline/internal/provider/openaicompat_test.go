@@ -123,7 +123,7 @@ func TestOpenAICompatRequestBodyInputAudio(t *testing.T) {
 	if !ok {
 		t.Fatal("openai-compat must support single-call AST")
 	}
-	if result.Transcript != "hello" || result.Translation != "hola" {
+	if result.Transcript.Text != "hello" || result.Translation != "hola" {
 		t.Fatalf("AST result: %+v", result)
 	}
 
@@ -178,7 +178,7 @@ func TestOpenAICompatASTAndTranslate(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("AST call: ok=%v err=%v", ok, err)
 	}
-	if result.Transcript != "transcript here" || result.Translation != "traducción" {
+	if result.Transcript.Text != "transcript here" || result.Translation != "traducción" {
 		t.Fatalf("AST result: %+v", result)
 	}
 
@@ -218,8 +218,8 @@ func TestOpenAICompatRetryOn5xx(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(transcript) != "recovered" {
-		t.Fatalf("transcript: %q", transcript)
+	if transcript.Text != "recovered" {
+		t.Fatalf("transcript: %q", transcript.Text)
 	}
 	if goodCalls.Load() != 1 {
 		t.Fatalf("expected 1 call to the healthy endpoint, got %d", goodCalls.Load())
@@ -310,8 +310,8 @@ func TestOpenAICompatUnhealthyMarkingAndRecovery(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(transcript) != "back" {
-		t.Fatalf("transcript after recovery: %q", transcript)
+	if transcript.Text != "back" {
+		t.Fatalf("transcript after recovery: %q", transcript.Text)
 	}
 }
 
@@ -410,8 +410,8 @@ func TestOpenAICompatBadOutputFallsBack(t *testing.T) {
 	if !errors.Is(err, ErrBadOutput) {
 		t.Fatalf("expected ErrBadOutput, got %v", err)
 	}
-	if result.Transcript != "output without the marker" {
-		t.Fatalf("raw output must be kept as transcript: %q", result.Transcript)
+	if result.Transcript.Text != "output without the marker" {
+		t.Fatalf("raw output must be kept as transcript: %q", result.Transcript.Text)
 	}
 }
 

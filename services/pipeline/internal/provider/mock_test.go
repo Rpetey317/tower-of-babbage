@@ -16,8 +16,8 @@ func TestMockCannedOutput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if transcript != "[mock en] chunk 12, 72.0s-78.4s" {
-		t.Fatalf("unexpected transcript %q", transcript)
+	if transcript.Text != "[mock en] chunk 12, 72.0s-78.4s" {
+		t.Fatalf("unexpected transcript %q", transcript.Text)
 	}
 
 	result, ok, err := mock.TranscribeAndTranslate(context.Background(), audio, ASTRequest{SourceLanguage: "en", TargetLanguage: "es"})
@@ -27,7 +27,7 @@ func TestMockCannedOutput(t *testing.T) {
 	if !ok {
 		t.Fatal("mock must support single-call AST")
 	}
-	if result.Transcript != "[mock en] chunk 12, 72.0s-78.4s" || result.Translation != "[mock es] fragmento 12, 72.0s-78.4s" {
+	if result.Transcript.Text != "[mock en] chunk 12, 72.0s-78.4s" || result.Translation != "[mock es] fragmento 12, 72.0s-78.4s" {
 		t.Fatalf("unexpected AST result %+v", result)
 	}
 
@@ -54,8 +54,8 @@ func TestMockLinesDeterministic(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if string(transcript) != expected {
-			t.Fatalf("call %d: got %q, want %q", i, transcript, expected)
+		if transcript.Text != expected {
+			t.Fatalf("call %d: got %q, want %q", i, transcript.Text, expected)
 		}
 	}
 
@@ -66,8 +66,23 @@ func TestMockLinesDeterministic(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if result.Transcript != expected {
-			t.Fatalf("call %d: got %q, want %q", i, result.Transcript, expected)
+		if result.Transcript.Text != expected {
+			t.Fatalf("call %d: got %q, want %q", i, result.Transcript.Text, expected)
+		}
+	}
+}
+
+func TestMockRotatingSpeakers(t *testing.T) {
+	mock := NewMock(0, nil)
+	// Chunks alternate speakers in pairs: S1, S1, S2, S2, ...
+	want := []string{"S1", "S1", "S2", "S2", "S1"}
+	for index, speaker := range want {
+		transcript, err := mock.Transcribe(context.Background(), WAV{Index: index}, TranscribeRequest{SourceLanguage: "en"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if transcript.Speaker != speaker {
+			t.Fatalf("chunk %d: got speaker %q, want %q", index, transcript.Speaker, speaker)
 		}
 	}
 }
@@ -118,8 +133,8 @@ func TestMockConcurrentUse(t *testing.T) {
 					t.Error(err)
 					return
 				}
-				if transcript != "a" && transcript != "b" {
-					t.Errorf("unexpected transcript %q", transcript)
+				if transcript.Text != "a" && transcript.Text != "b" {
+					t.Errorf("unexpected transcript %q", transcript.Text)
 					return
 				}
 			}
