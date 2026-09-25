@@ -15,3 +15,18 @@ The [Piper voice collection](https://huggingface.co/rhasspy/piper-voices) is MIT
 python -m piper -m <voice>.onnx -i <name>.txt -f <name>-raw.wav --sentence-silence 0.25
 ffmpeg -i <name>-raw.wav -ar 16000 -ac 1 -c:a pcm_s16le -map_metadata -1 -bitexact <name>.wav
 ```
+
+## Video fixtures
+
+`en-kubernetes-60s.mp4` (62 s, 640x360 h264 + AAC) pairs an FFmpeg-generated
+`testsrc2` pattern — its moving clock makes audio/video drift visible — with
+the audio track of `en-kubernetes-60s.wav`. The video track contains no
+external copyrighted material and is covered by the repository's
+[Apache 2.0 license](../../LICENSE); the audio track stays under the CC BY-SA
+4.0 terms of the WAV above. Regenerate with:
+
+```sh
+ffmpeg -f lavfi -i "testsrc2=size=640x360:rate=24" -i en-kubernetes-60s.wav \
+  -shortest -c:v libx264 -crf 34 -preset slow -pix_fmt yuv420p \
+  -c:a aac -b:a 64k -movflags +faststart en-kubernetes-60s.mp4
+```

@@ -199,7 +199,27 @@ Consequences. Replay sessions self-complete with correct tail latency and a
 clean final status; `ffmpeg_exit` appears at two levels (info for natural
 EOF, error for real failures). Live sources (browser mic, stream URLs) are
 unaffected — their producers only return on cancellation.
-## ADR-014: Profile `all` is the application stack only
+
+## ADR-014: Video served by a slug-scoped media route, cues keyed to `currentTime`
+
+Context. M7-01 needs the browser to play the same video file the pipeline
+replays. `FIXTURES_DIR` belongs to the pipeline and the audience surface is
+public, so neither exposing the directory nor hardcoding `public/` symlinks
+(FIXTURES_DIR is configurable; Windows symlinks are awkward) was attractive.
+
+Decision. `GET /api/media/[slug]` resolves the session, re-validates
+`sourceConfig.path` (relative, no `..`, video extension) and streams it from
+the web app's own `MEDIA_DIR` with single-range support. The playback view at
+`/s/[slug]/play` is seekable rather than live-locked: cues are selected by
+`video.currentTime` against segment `startMs`/`endMs`, with a 2 s linger past
+`endMs` so translations that arrive after their audio window still render.
+
+Consequences. Only files referenced by a session's source are reachable over
+HTTP; `MEDIA_DIR` must point at the fixture tree (default matches the repo
+layout). Live viewing is "press play whenever", not locked to run start —
+segments produced before the viewer seeks are simply all available.
+
+## ADR-015: Profile `all` is the application stack only
 
 Context. M2-05 needed `docker compose --profile all up` to work on any clean
 machine. The Vulkan `llama` service requires `/dev/dri`, which Docker Desktop

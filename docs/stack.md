@@ -116,6 +116,7 @@ Web (`apps/web/.env`):
 | `AUTH_SECRET` | 32+ random bytes, base64 | Signs the admin cookie |
 | `SHARED_SECRET` | 32+ random bytes, base64 | Bearer for control API calls and events endpoint, key for ingest tokens |
 | `PIPELINE_URL` | `http://localhost:8090` | Control API base URL, server-side only |
+| `MEDIA_DIR` | `../../fixtures/audio` | Root `/api/media/[slug]` streams `file_replay` video sources from; same tree as the pipeline's `FIXTURES_DIR` |
 | `NEXT_PUBLIC_PIPELINE_WS_URL` | `ws://localhost:8090` | Ingest WebSocket base URL used by the operator page |
 | `NEXT_PUBLIC_DEFAULT_LOCALE` | `es` | UI locale when none selected |
 

@@ -27,4 +27,14 @@ export const demoSessions: (typeof sessions.$inferInsert)[] = [
 		sourceType: "file_replay",
 		sourceConfig: { path: "es-charla-60s.wav", loop: false },
 	},
+	{
+		slug: "demo-video",
+		title: "Video replay demo",
+		room: "Sala C",
+		roomColor: "green",
+		sourceLanguage: "en",
+		targetLanguages: ["es"],
+		sourceType: "file_replay",
+		sourceConfig: { path: "en-kubernetes-60s.mp4", loop: false },
+	},
 ];
