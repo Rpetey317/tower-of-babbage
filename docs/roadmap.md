@@ -160,7 +160,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M6-02** · web · M · deps M1-04 · `done`
   Full `es`/`en` interface coverage for audience, overlay and admin; locale resolution order; parity test.
   Done when: parity test passes; `?hl=en` and the toggle switch every visible string.
-- **M6-03** · fixtures · S · deps M6-01, M0-07 · `todo`
+- **M6-03** · fixtures · S · deps M6-01, M0-07 · `done`
   `pt-sample-30s` fixture with ground truth; quality check `pt -> es` recorded in the issue and in [languages.md](components/languages.md).
   Done when: captions are Portuguese and Spanish respectively; WER recorded.
 

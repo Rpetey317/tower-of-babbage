@@ -56,4 +56,6 @@ that reason.
   with a 400 `unsupported_language`.
 - Manual for M6: replay `fixtures/audio/pt-sample-30s.wav` with
   `sourceLanguage: pt`, `targetLanguages: ["es"]`; captions are Portuguese and
-  Spanish respectively.
+  Spanish respectively. Run with `scripts/language-quality.mjs`; M6-03 result
+  (issue #38): 8 segments, 0 parse failures, WER 1.03% on Gemini
+  `gemini-3.8-flash` and 3.09% on the local llama-server path (shared CPU).
