@@ -52,9 +52,10 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		Flush:        cfg.EventsFlush,
 	}, logger)
 	registry := session.NewRegistry(session.Config{
-		FixturesDir:    cfg.FixturesDir,
-		Chunk:          chunk.Config{Min: cfg.ChunkMin, Target: cfg.ChunkTarget, Max: cfg.ChunkMax},
-		MaxConcurrency: cfg.InferenceMaxConcurrency,
+		FixturesDir:     cfg.FixturesDir,
+		Chunk:           chunk.Config{Min: cfg.ChunkMin, Target: cfg.ChunkTarget, Max: cfg.ChunkMax},
+		MaxConcurrency:  cfg.InferenceMaxConcurrency,
+		GlossaryEnforce: cfg.GlossaryEnforce,
 	}, speech, events, logger)
 	ingestWS := ingest.NewHandler(registry, cfg.SharedSecret, events, logger)
 	server := &http.Server{Handler: control.NewHandler(ctx, cfg, registry, ingestWS), ReadHeaderTimeout: 5 * time.Second}

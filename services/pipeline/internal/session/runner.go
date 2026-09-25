@@ -52,6 +52,7 @@ type Runner struct {
 	lastPushUnix    atomic.Int64
 	noAudioWarned   atomic.Bool
 	status          atomic.Value // string
+	glossary        atomic.Value // []contract.GlossaryTerm
 
 	latMu     sync.Mutex
 	latencies []int
@@ -84,6 +85,7 @@ func newRunner(baseCtx context.Context, sessionID string, req contract.SessionSt
 	}
 	r.runCtx, r.cancel = context.WithCancel(baseCtx)
 	r.status.Store("starting")
+	r.glossary.Store(req.Glossary)
 	return r
 }
 
@@ -93,6 +95,17 @@ func (r *Runner) RunID() string { return r.req.RunID }
 // Status reports the current run status string (starting, running, stopping,
 // idle, error).
 func (r *Runner) Status() string { return r.status.Load().(string) }
+
+// SetGlossary replaces the run's glossary so the next provider call — and
+// therefore the next chunk — uses it (PUT /v1/sessions/{id}/glossary,
+// contract section 2).
+func (r *Runner) SetGlossary(terms []contract.GlossaryTerm) {
+	r.glossary.Store(terms)
+}
+
+func (r *Runner) glossaryTerms() []contract.GlossaryTerm {
+	return r.glossary.Load().([]contract.GlossaryTerm)
+}
 
 func (r *Runner) setStatus(status string) {
 	r.status.Store(status)
@@ -233,6 +246,11 @@ func (r *Runner) run() {
 	heartbeat := time.NewTicker(r.cfg.StatusInterval)
 	defer heartbeat.Stop()
 
+	// stopWake lets a parked loop notice beginStop instead of sleeping until
+	// the next result or heartbeat; once observed it is disabled so the drain
+	// iterations below do not spin on the closed channel.
+	stopWake := r.stopCh
+
 	flushed := false
 	for {
 		if r.stopping() {
@@ -273,6 +291,8 @@ func (r *Runner) run() {
 		case <-heartbeat.C:
 			r.checkNoAudio()
 			r.events.Status(r.sessionID, r.req.RunID, r.Status(), r.Stats())
+		case <-stopWake:
+			stopWake = nil
 		}
 	}
 }
@@ -380,6 +400,7 @@ func (r *Runner) process(ctx context.Context, ch chunk.Chunk) chunkResult {
 func (r *Runner) transcribe(ctx context.Context, audio provider.WAV, source string, targets []string) (string, map[string]string, []logEntry) {
 	var logs []logEntry
 	translations := make(map[string]string)
+	glossary := r.glossaryTerms()
 
 	transcript, err := r.asr(ctx, audio, source, targets, &logs, translations)
 	if err != nil {
@@ -396,6 +417,12 @@ func (r *Runner) transcribe(ctx context.Context, audio provider.WAV, source stri
 		}
 		translations[target] = text
 	}
+	if r.cfg.GlossaryEnforce {
+		transcript = provider.EnforceGlossary(transcript, glossary, false)
+		for target, text := range translations {
+			translations[target] = provider.EnforceGlossary(text, glossary, true)
+		}
+	}
 	return transcript, translations, logs
 }
 
@@ -407,7 +434,7 @@ func (r *Runner) asr(ctx context.Context, audio provider.WAV, source string, tar
 		ast, ok, err := r.provider.TranscribeAndTranslate(ctx, audio, provider.ASTRequest{
 			SourceLanguage: source,
 			TargetLanguage: targets[0],
-			Glossary:       r.req.Glossary,
+			Glossary:       r.glossaryTerms(),
 		})
 		switch {
 		case err == nil && ok:
@@ -423,7 +450,7 @@ func (r *Runner) asr(ctx context.Context, audio provider.WAV, source string, tar
 	}
 	out, err := r.provider.Transcribe(ctx, audio, provider.TranscribeRequest{
 		SourceLanguage: source,
-		Glossary:       r.req.Glossary,
+		Glossary:       r.glossaryTerms(),
 	})
 	if err != nil {
 		*logs = append(*logs, r.providerError(source, err))
@@ -436,7 +463,7 @@ func (r *Runner) callTranslate(ctx context.Context, text, source, target string)
 	return r.provider.Translate(ctx, text, provider.TranslateRequest{
 		SourceLanguage: source,
 		TargetLanguage: target,
-		Glossary:       r.req.Glossary,
+		Glossary:       r.glossaryTerms(),
 	})
 }
 

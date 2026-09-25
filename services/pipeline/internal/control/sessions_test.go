@@ -106,6 +106,7 @@ func TestSessionsRequireAuth(t *testing.T) {
 		httptest.NewRequest(http.MethodGet, "/v1/sessions", nil),
 		httptest.NewRequest(http.MethodPost, "/v1/sessions/s1/start", strings.NewReader(`{}`)),
 		httptest.NewRequest(http.MethodPost, "/v1/sessions/s1/stop", nil),
+		httptest.NewRequest(http.MethodPut, "/v1/sessions/s1/glossary", strings.NewReader(`{"glossary":[]}`)),
 	} {
 		response := httptest.NewRecorder()
 		handler.ServeHTTP(response, request)
@@ -245,6 +246,43 @@ func TestStartBadRequestBody(t *testing.T) {
 	bad := startRequest("run-1")
 	bad.TranslationMode = "wat"
 	checkError(t, do(t, handler, http.MethodPost, "/v1/sessions/s1/start", bad), http.StatusBadRequest, "invalid_source")
+}
+
+func TestGlossaryUpdate(t *testing.T) {
+	handler, registry := testAPI(t)
+	sessionID := "sess-glossary"
+
+	checkError(t, do(t, handler, http.MethodPut, "/v1/sessions/"+sessionID+"/glossary",
+		contract.GlossaryUpdateRequest{}), http.StatusNotFound, "not_running")
+
+	if response := do(t, handler, http.MethodPost, "/v1/sessions/"+sessionID+"/start", startRequest("run-1")); response.Code != http.StatusAccepted {
+		t.Fatalf("start failed: %d %q", response.Code, response.Body.String())
+	}
+	t.Cleanup(func() { _, _ = registry.Stop(sessionID, "") })
+
+	translation := "PR"
+	response := do(t, handler, http.MethodPut, "/v1/sessions/"+sessionID+"/glossary",
+		contract.GlossaryUpdateRequest{Glossary: []contract.GlossaryTerm{
+			{Term: "Nerdearla"},
+			{Term: "pull request", Translation: &translation},
+		}})
+	if response.Code != http.StatusOK {
+		t.Fatalf("glossary status = %d (body %q)", response.Code, response.Body.String())
+	}
+	if payload := decodeBody[contract.GlossaryUpdateResponse](t, response); payload.Count != 2 {
+		t.Fatalf("count = %d, want 2", payload.Count)
+	}
+
+	// An empty list is a valid replacement.
+	response = do(t, handler, http.MethodPut, "/v1/sessions/"+sessionID+"/glossary",
+		contract.GlossaryUpdateRequest{Glossary: []contract.GlossaryTerm{}})
+	if payload := decodeBody[contract.GlossaryUpdateResponse](t, response); response.Code != http.StatusOK || payload.Count != 0 {
+		t.Fatalf("empty glossary: status %d count %d", response.Code, payload.Count)
+	}
+
+	// Unknown fields are rejected like every other control endpoint.
+	checkError(t, do(t, handler, http.MethodPut, "/v1/sessions/"+sessionID+"/glossary",
+		map[string]any{"glossary": []any{}, "bogus": 1}), http.StatusBadRequest, "invalid_source")
 }
 
 func TestStopNotRunning(t *testing.T) {

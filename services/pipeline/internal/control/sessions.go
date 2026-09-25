@@ -25,6 +25,7 @@ func (a *sessionAPI) register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/sessions", a.withAuth(a.list))
 	mux.HandleFunc("POST /v1/sessions/{sessionId}/start", a.withAuth(a.start))
 	mux.HandleFunc("POST /v1/sessions/{sessionId}/stop", a.withAuth(a.stop))
+	mux.HandleFunc("PUT /v1/sessions/{sessionId}/glossary", a.withAuth(a.glossary))
 }
 
 // withAuth enforces the shared-secret bearer from contract section 1.
@@ -99,6 +100,26 @@ func (a *sessionAPI) stop(w http.ResponseWriter, r *http.Request) {
 		writeControlError(w, http.StatusInternalServerError, "internal_error", "")
 	default:
 		writeJSON(w, http.StatusAccepted, contract.SessionStopResponse{RunID: stopped, Status: "stopping"})
+	}
+}
+
+// glossary replaces the active run's glossary for later chunks (contract
+// section 2). The error enum is closed, so a malformed body reuses
+// invalid_source, the generic 400.
+func (a *sessionAPI) glossary(w http.ResponseWriter, r *http.Request) {
+	var req contract.GlossaryUpdateRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeControlError(w, http.StatusBadRequest, "invalid_source", "")
+		return
+	}
+	count, err := a.registry.UpdateGlossary(r.PathValue("sessionId"), req.Glossary)
+	switch {
+	case errors.Is(err, session.ErrNotRunning):
+		writeControlError(w, http.StatusNotFound, "not_running", "")
+	case err != nil:
+		writeControlError(w, http.StatusInternalServerError, "internal_error", "")
+	default:
+		writeJSON(w, http.StatusOK, contract.GlossaryUpdateResponse{Count: count})
 	}
 }
 

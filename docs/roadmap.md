@@ -136,7 +136,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M4-01** · web · M · deps M1-05 · `done`
   `glossary_terms` CRUD for global and session scope, bulk paste (`term = translation`), merge/dedupe/cap into the start request, session page editor and `/admin/glossary`.
   Done when: merge logic tests pass; start request contains the merged list.
-- **M4-02** · pipeline · S · deps M1-12 · `todo`
+- **M4-02** · pipeline · S · deps M1-12 · `done`
   `PUT /v1/sessions/{id}/glossary` replacing the active glossary for later chunks; optional `GLOSSARY_ENFORCE` post-replacement.
   Done when: handler test; runner test shows the next prompt uses the new list; replacement test for whole-word behaviour.
 - **M4-03** · infra · S · deps M4-01, M1-14 · `todo`

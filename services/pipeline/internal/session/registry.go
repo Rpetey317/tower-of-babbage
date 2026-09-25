@@ -45,12 +45,13 @@ type Events interface {
 
 // Config carries the runner tunables derived from the pipeline config.
 type Config struct {
-	FixturesDir    string
-	Chunk          chunk.Config
-	MaxConcurrency int           // provider calls in flight across all runners (shared)
-	StatusInterval time.Duration // defaults to statusHeartbeat
-	NoAudioAfter   time.Duration // defaults to noAudioAfter
-	Now            func() time.Time
+	FixturesDir     string
+	Chunk           chunk.Config
+	MaxConcurrency  int           // provider calls in flight across all runners (shared)
+	StatusInterval  time.Duration // defaults to statusHeartbeat
+	NoAudioAfter    time.Duration // defaults to noAudioAfter
+	GlossaryEnforce bool          // GLOSSARY_ENFORCE: whole-word glossary rewrite of provider output
+	Now             func() time.Time
 }
 
 func (c Config) withDefaults() Config {
@@ -234,6 +235,21 @@ func (r *Registry) Stop(sessionID, runID string) (string, error) {
 	}
 	runner.Stop()
 	return runner.RunID(), nil
+}
+
+// UpdateGlossary replaces the glossary of the session's active run so later
+// chunks use it (PUT /v1/sessions/{id}/glossary, contract section 2), and
+// returns the applied term count. Runs still draining after a stop accept
+// the update harmlessly.
+func (r *Registry) UpdateGlossary(sessionID string, terms []contract.GlossaryTerm) (int, error) {
+	r.mu.Lock()
+	runner, ok := r.runs[sessionID]
+	r.mu.Unlock()
+	if !ok {
+		return 0, ErrNotRunning
+	}
+	runner.SetGlossary(terms)
+	return len(terms), nil
 }
 
 // Shutdown winds every active run down in parallel — each flushes its tail,
