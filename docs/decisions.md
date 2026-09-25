@@ -199,3 +199,19 @@ Consequences. Replay sessions self-complete with correct tail latency and a
 clean final status; `ffmpeg_exit` appears at two levels (info for natural
 EOF, error for real failures). Live sources (browser mic, stream URLs) are
 unaffected — their producers only return on cancellation.
+## ADR-014: Profile `all` is the application stack only
+
+Context. M2-05 needed `docker compose --profile all up` to work on any clean
+machine. The Vulkan `llama` service requires `/dev/dri`, which Docker Desktop
+on WSL2 does not provide (`/dev/dxg` instead), so including `llama` in `all`
+made the profile fail on exactly the laptops it will be verified on — and the
+Gemini path (ADR-011) never needs it.
+
+Decision. `all` runs `postgres`, `web` and `pipeline`. Local inference joins
+the stack by combining profiles: `--profile all --profile infra` (Vulkan) or
+`--profile all --profile cpu`. `llama` keeps the `infra` profile,
+`llama-cpu` keeps `cpu`.
+
+Consequences. The acceptance run works with only `PROVIDER=mock` and no GPU
+or model download. Event deployments that self-host inference add one flag.
+Docs (`deployment.md`, `stack.md`) were updated to match.

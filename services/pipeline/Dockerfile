@@ -5,7 +5,7 @@ COPY . ./
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /pipeline ./cmd/pipeline
 
 FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates ffmpeg \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=build /pipeline /usr/local/bin/pipeline
 ENV FIXTURES_DIR=/fixtures

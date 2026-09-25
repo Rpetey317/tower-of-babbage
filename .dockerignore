@@ -1,0 +1,16 @@
+# Build context hygiene: the web Dockerfile builds from the repo root.
+.git
+**/node_modules
+**/.next
+**/out
+**/dist
+**/coverage
+**/*.tsbuildinfo
+bin/
+infra/models/
+.env
+.env.*
+!.env.example
+docs/
+fixtures/
+services/

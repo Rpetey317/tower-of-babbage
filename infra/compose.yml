@@ -16,9 +16,15 @@ x-llama-common: &llama-common
     - ${LLAMA_NGL:-99}
     - --jinja
   ports:
-    - "${LLAMA_BIND_HOST:-127.0.0.1}:8080:8080"
+    - "${LLAMA_BIND_HOST:-127.0.0.1}:${LLAMA_PORT:-8080}:8080"
   volumes:
     - llama-cache:/root/.cache/llama.cpp
+  healthcheck:
+    test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/health >/dev/null || exit 1"]
+    interval: 10s
+    timeout: 5s
+    retries: 12
+    start_period: 60s
 
 services:
   postgres:
@@ -29,7 +35,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in infra/.env}
       POSTGRES_DB: babbage
     ports:
-      - "${POSTGRES_BIND_HOST:-127.0.0.1}:5432:5432"
+      - "${POSTGRES_BIND_HOST:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -38,10 +44,61 @@ services:
       timeout: 5s
       retries: 10
 
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_PIPELINE_WS_URL: ${PUBLIC_PIPELINE_WS_URL:?Set PUBLIC_PIPELINE_WS_URL in infra/.env}
+        NEXT_PUBLIC_DEFAULT_LOCALE: ${NEXT_PUBLIC_DEFAULT_LOCALE:-es}
+    profiles: [all]
+    environment:
+      DATABASE_URL: postgres://babbage:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in infra/.env}@postgres:5432/babbage
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in infra/.env}
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in infra/.env}
+      SHARED_SECRET: ${SHARED_SECRET:?Set SHARED_SECRET in infra/.env}
+      PIPELINE_URL: http://pipeline:8090
+      NEXT_PUBLIC_PIPELINE_WS_URL: ${PUBLIC_PIPELINE_WS_URL:?Set PUBLIC_PIPELINE_WS_URL in infra/.env}
+      NEXT_PUBLIC_DEFAULT_LOCALE: ${NEXT_PUBLIC_DEFAULT_LOCALE:-es}
+    ports:
+      - "${WEB_BIND_HOST:-0.0.0.0}:${WEB_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD-SHELL, "wget -qO /dev/null http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  pipeline:
+    build:
+      context: ../services/pipeline
+    profiles: [all]
+    environment:
+      WEB_URL: http://web:3000
+      SHARED_SECRET: ${SHARED_SECRET:?Set SHARED_SECRET in infra/.env}
+      PROVIDER: ${PROVIDER:-mock}
+      INFERENCE_URLS: ${INFERENCE_URLS:-http://llama:8080}
+      INFERENCE_MODEL: ${INFERENCE_MODEL:-gemma-4}
+      INFERENCE_AUDIO_FORMAT: ${INFERENCE_AUDIO_FORMAT:-input_audio}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
+    ports:
+      - "${PIPELINE_BIND_HOST:-0.0.0.0}:${PIPELINE_PORT:-8090}:8090"
+    volumes:
+      - ../fixtures/audio:/fixtures:ro
+    healthcheck:
+      test: [CMD-SHELL, "curl -fsS http://127.0.0.1:8090/healthz >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
   llama:
     <<: *llama-common
     image: ghcr.io/ggml-org/llama.cpp:server-vulkan
-    profiles: [infra, all]
+    profiles: [infra]
     devices:
       - /dev/dri:/dev/dri
     group_add: [video, render]

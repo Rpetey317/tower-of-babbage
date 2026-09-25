@@ -80,8 +80,10 @@ services/pipeline/
 
 - `infra/compose.yml`: services `postgres`, `llama`, `llama-cpu`, `pipeline`,
   `web`. Profiles `infra` (postgres + Vulkan llama), `cpu` (CPU llama), and
-  `all`. `make infra-up` selects CPU when `/dev/dri` is unavailable. The
-  `llama`/`llama-cpu` services are only needed for local inference.
+  `all` (postgres + web + pipeline; combine with `infra` or `cpu` when
+  inference runs in the same stack). `make infra-up` selects CPU when
+  `/dev/dri` is unavailable. The `llama`/`llama-cpu` services are only needed
+  for local inference.
 - `dev.ps1`: Windows PowerShell 5.1+ task runner (`model-pull`, `inference`,
   `transcribe`, `test-inference`) dispatching to the scripts below.
 - `infra/pull-model.sh`: downloads the selected GGUF and BF16 mmproj into
@@ -150,8 +152,12 @@ Compose-level (`infra/.env`, consumed by `infra/compose.yml` and mapped onto the
 | `POSTGRES_BIND_HOST` | Host address for the development database port (default `127.0.0.1`) |
 | `LLAMA_BIND_HOST` | Host address for the inference port (default `127.0.0.1`) |
 | `PUBLIC_WEB_URL` | Externally reachable web URL, used for links in exports and QR codes |
-| `PUBLIC_PIPELINE_WS_URL` | Externally reachable ingest WebSocket URL; becomes `NEXT_PUBLIC_PIPELINE_WS_URL` |
+| `PUBLIC_PIPELINE_WS_URL` | Externally reachable ingest WebSocket URL; becomes `NEXT_PUBLIC_PIPELINE_WS_URL` (build arg and runtime env of the `web` image) |
 | `SHARED_SECRET`, `AUTH_SECRET`, `ADMIN_PASSWORD` | Passed through to `web` and `pipeline` |
+| `PROVIDER` | Pipeline provider inside `all` (`mock`, `gemini`, `openai-compat`); default `mock` |
+| `NEXT_PUBLIC_DEFAULT_LOCALE` | Default UI locale in the `all` profile (default `es`) |
+| `WEB_PORT`, `PIPELINE_PORT`, `POSTGRES_PORT`, `LLAMA_PORT` | Host-side published ports (defaults 3000, 8090, 5432, 8080) |
+| `WEB_BIND_HOST`, `PIPELINE_BIND_HOST` | Bind addresses for the `all` services (default `0.0.0.0`) |
 
 llama-server (`infra/compose.yml` `llama` service):
 
