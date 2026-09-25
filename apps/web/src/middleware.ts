@@ -32,6 +32,8 @@ export async function middleware(request: NextRequest) {
 
 	const headers = new Headers(request.headers);
 	headers.set("x-tob-locale", locale);
+	// Lets the root layout strip site chrome on the OBS overlay route.
+	headers.set("x-tob-pathname", pathname);
 	const response = NextResponse.next({ request: { headers } });
 	if (isLocale(queryLocale)) {
 		response.cookies.set("tob_locale", locale, {
