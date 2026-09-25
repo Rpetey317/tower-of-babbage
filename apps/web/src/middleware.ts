@@ -1,8 +1,25 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { adminCookieName, verifyAdminCookie } from "~/lib/auth/admin-cookie";
 import { isLocale, resolveLocale } from "~/lib/i18n/locale";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
+	const pathname = request.nextUrl.pathname;
+
+	// Admin gate: every /admin page except the login form needs a valid
+	// tob_admin cookie. AUTH_SECRET is read raw (not via ~/env, whose Zod
+	// refinements use Buffer, unavailable in the edge runtime).
+	if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
+		const value = request.cookies.get(adminCookieName)?.value;
+		const secret = process.env.AUTH_SECRET;
+		if (
+			typeof secret !== "string" ||
+			!(await verifyAdminCookie(value, secret))
+		) {
+			return NextResponse.redirect(new URL("/admin/login", request.url));
+		}
+	}
+
 	const queryLocale = request.nextUrl.searchParams.get("hl");
 	const locale = resolveLocale(
 		queryLocale,

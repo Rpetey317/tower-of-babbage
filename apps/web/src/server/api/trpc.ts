@@ -6,10 +6,16 @@
  * TL;DR - This is where all the tRPC server stuff is created and plugged in. The pieces you will
  * need to use are documented accordingly near the end.
  */
-import { initTRPC } from "@trpc/server";
+import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
+import { env } from "~/env";
+import {
+	adminCookieName,
+	readCookie,
+	verifyAdminCookie,
+} from "~/lib/auth/admin-cookie";
 import { db } from "~/server/db";
 
 /**
@@ -81,3 +87,16 @@ export const createTRPCRouter = t.router;
  * are logged in.
  */
 export const publicProcedure = t.procedure;
+
+/**
+ * Admin procedure: requires a valid `tob_admin` cookie (see
+ * docs/components/admin-panel.md). The same cookie gates `/admin` pages in
+ * `middleware.ts`.
+ */
+export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
+	const value = readCookie(ctx.headers.get("cookie"), adminCookieName);
+	if (!(await verifyAdminCookie(value, env.AUTH_SECRET))) {
+		throw new TRPCError({ code: "UNAUTHORIZED" });
+	}
+	return next({ ctx });
+});
