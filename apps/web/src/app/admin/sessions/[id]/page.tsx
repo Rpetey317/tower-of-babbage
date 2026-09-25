@@ -25,7 +25,8 @@ export default async function SessionPage({
 }: {
 	params: Promise<{ id: string }>;
 }) {
-	const copy = getDictionary(await getRequestLocale());
+	const locale = await getRequestLocale();
+	const copy = getDictionary(locale);
 	const { id } = await params;
 	const [session] = await db.select().from(sessions).where(eq(sessions.id, id));
 	if (!session) notFound();
@@ -108,33 +109,8 @@ export default async function SessionPage({
 				{copy.adminEditTitle}
 			</h2>
 			<SessionForm
+				copy={copy}
 				initial={initial}
-				labels={{
-					title: copy.adminFieldTitle,
-					slug: copy.adminFieldSlug,
-					room: copy.adminFieldRoom,
-					roomColor: copy.adminFieldRoomColor,
-					sourceLanguage: copy.adminFieldSourceLanguage,
-					targetLanguages: copy.adminFieldTargetLanguages,
-					languageUnverified: copy.adminLanguageUnverified,
-					sourceType: copy.adminFieldSourceType,
-					replayPath: copy.adminFieldReplayPath,
-					replayLoop: copy.adminFieldReplayLoop,
-					streamUrl: copy.adminFieldStreamUrl,
-					deviceName: copy.adminFieldDeviceName,
-					deviceBackend: copy.adminFieldDeviceBackend,
-					browserMicHint: copy.adminFieldBrowserMicHint,
-					targetAdd: copy.adminTargetAdd,
-					targetMoveUp: copy.adminTargetMoveUp,
-					targetMoveDown: copy.adminTargetMoveDown,
-					targetRemove: copy.adminTargetRemove,
-					translationMode: copy.adminFieldTranslationMode,
-					createSubmit: copy.adminCreateSubmit,
-					saveSubmit: copy.adminSaveSubmit,
-					formError: copy.adminFormError,
-					delete: copy.adminDelete,
-					deleteConfirm: copy.adminDeleteConfirm,
-				}}
 				mode="edit"
 				sessionId={session.id}
 			/>
@@ -167,6 +143,7 @@ export default async function SessionPage({
 			<SessionEventsLog
 				copy={copy}
 				initialEvents={events}
+				locale={locale}
 				sessionId={session.id}
 			/>
 		</main>

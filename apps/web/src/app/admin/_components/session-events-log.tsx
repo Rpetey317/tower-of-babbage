@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import type { Dictionary } from "~/lib/i18n";
+import type { Locale } from "~/lib/i18n/locale";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type EventRow = RouterOutputs["admin"]["events"]["recent"][number];
@@ -21,6 +22,17 @@ const levelClasses: Record<LiveEvent["level"], string> = {
 	warn: "bg-orange text-ink-950",
 	error: "bg-coral text-ink-950",
 };
+
+const levelKeys: Record<LiveEvent["level"], keyof Dictionary> = {
+	info: "adminLevelInfo",
+	warn: "adminLevelWarn",
+	error: "adminLevelError",
+};
+
+/** 24-hour `HH:MM:SS` in the UI locale. */
+function formatTime(time: string, locale: Locale): string {
+	return new Date(time).toLocaleTimeString(locale === "en" ? "en-GB" : "es-AR");
+}
 
 const maxLiveEvents = 200;
 
@@ -53,10 +65,12 @@ export function SessionEventsLog({
 	sessionId,
 	initialEvents,
 	copy,
+	locale,
 }: {
 	sessionId: string;
 	initialEvents: EventRow[];
 	copy: Dictionary;
+	locale: Locale;
 }) {
 	const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
 
@@ -129,13 +143,13 @@ export function SessionEventsLog({
 						{entries.map((entry) => (
 							<tr className="border-ink-700 border-b align-top" key={entry.key}>
 								<td className="py-2 pr-4 text-ink-300 tabular-nums">
-									{new Date(entry.time).toLocaleTimeString("en-GB")}
+									{formatTime(entry.time, locale)}
 								</td>
 								<td className="py-2 pr-4">
 									<span
 										className={`inline-block rounded-full px-2 py-0.5 font-semibold text-xs ${levelClasses[entry.level] ?? levelClasses.info}`}
 									>
-										{entry.level}
+										{copy[levelKeys[entry.level] ?? "adminLevelInfo"]}
 									</span>
 								</td>
 								<td className="py-2 pr-4 font-mono text-ink-300 text-xs">

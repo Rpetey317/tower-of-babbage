@@ -40,11 +40,13 @@ that reason.
   middleware stores a valid choice in `tob_locale` and passes the resolved locale
   to the server layout.
 - Dictionaries in `apps/web/src/lib/i18n/{es,en}.ts` typed against a shared key
-  type so a missing key fails type-checking. Helper `t(key, params)` on the
-  server and a `useT()` hook on the client.
+  type so a missing key fails type-checking. Server components resolve the
+  request locale via `getRequestLocale()` and pass `copy`/`locale` props down
+  to client components.
 - Every user-visible string in the audience, overlay and admin pages goes
-  through the dictionary. Admin pages may fall back to English strings during
-  the hackathon but the keys must exist.
+  through the dictionary; enum options render as "label (code)" so the raw
+  contract value stays visible. Server-side error prose (tRPC/Zod messages)
+  may still be English during the hackathon.
 
 ## Verification
 

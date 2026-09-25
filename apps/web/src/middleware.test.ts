@@ -52,4 +52,20 @@ describe("middleware admin gate", () => {
 			"/overlay/demo-en",
 		);
 	});
+
+	it("resolves ?hl, stores it in tob_locale and forwards it", async () => {
+		const response = await middleware(request("/s/demo-en?hl=en"));
+		expect(response.headers.get("x-middleware-request-x-tob-locale")).toBe(
+			"en",
+		);
+		expect(response.cookies.get("tob_locale")?.value).toBe("en");
+	});
+
+	it("falls back to the stored locale and does not rewrite the cookie", async () => {
+		const response = await middleware(request("/", "tob_locale=en"));
+		expect(response.headers.get("x-middleware-request-x-tob-locale")).toBe(
+			"en",
+		);
+		expect(response.cookies.get("tob_locale")).toBeUndefined();
+	});
 });
