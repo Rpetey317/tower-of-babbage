@@ -14,6 +14,9 @@ every variable is listed in [stack.md](stack.md).
 | `pipeline` | built from `services/pipeline/Dockerfile` (Debian slim, includes ffmpeg) | 8090 | `all` |
 | `web` | built from `apps/web/Dockerfile` (Next.js standalone output) | 3000 | `all` |
 
+The `llama` and `llama-cpu` services are only needed for local inference; the
+Gemini demo/MVP path needs only `postgres`.
+
 `make infra-up` runs profile `infra` (development: web and pipeline run from
 source). It selects the Vulkan service when `/dev/dri` exists and otherwise
 uses the CPU service. Set `LLAMA_SERVICE=llama` or `LLAMA_SERVICE=llama-cpu`
@@ -29,11 +32,13 @@ up -d` runs the complete GPU stack for an event. Health checks: `pg_isready`,
 
 Secrets and hosts come from `infra/.env` (copied from `infra/.env.example`):
 `SHARED_SECRET`, `AUTH_SECRET`, `ADMIN_PASSWORD`, `POSTGRES_PASSWORD`,
-`PUBLIC_WEB_URL`, `PUBLIC_PIPELINE_WS_URL`, `LLAMA_*`.
+`PUBLIC_WEB_URL`, `PUBLIC_PIPELINE_WS_URL`, `GEMINI_API_KEY` (Gemini path),
+`LLAMA_*` (local path).
 
-## llama-server
+## Local inference: llama-server
 
-Gemma 4 E2B or E4B instruct GGUF plus the multimodal projector (`mmproj`) that
+Only needed for the local path (`PROVIDER=openai-compat`); not for the Gemini
+demo. Gemma 4 E2B or E4B instruct GGUF plus the multimodal projector (`mmproj`) that
 contains the audio encoder. `-hf` downloads both from Hugging Face on first
 start into the `llama-cache` volume. `make model-pull` downloads the selected
 model and BF16 projector into `infra/models/` and verifies their checksums;
@@ -140,7 +145,9 @@ the raw model response plus request time from `transcribe-file.ps1`.
 
 ## Hardware guidance
 
-File sizes from the `ggml-org` repositories (September 2026):
+The Gemini path needs no GPU: any machine that reaches the API works. This
+section applies to local inference only. File sizes from the `ggml-org`
+repositories (September 2026):
 
 | Model file | Size | With BF16 mmproj (0.99 GB) |
 | --- | --- | --- |
@@ -168,23 +175,30 @@ ROCm on the RX 6600 (gfx1032) is not officially supported and needs
 
 ## Vibeathon demo topology
 
-- GPU box: `docker compose -f infra/compose.yml --profile infra up llama`
-  (or the native binary), reachable on the LAN as `http://gpu-box:8080`.
-- Laptop: `make infra-up` for Postgres only (`docker compose ... up postgres`),
-  `INFERENCE_URLS=http://gpu-box:8080 make pipeline`, `make web`.
+The demo runs on the Gemini API: no GPU box, only outbound internet.
+
+- Laptop: Postgres only (`docker compose -f infra/compose.yml up -d postgres`),
+  `GEMINI_API_KEY=<key> PROVIDER=gemini make pipeline`, `make web`.
 - Second pipeline instance is unnecessary; one pipeline handles all sessions.
 - For the parallel-sessions demo, seed `file_replay` sessions and run some of
   them on the mock provider by starting a second pipeline with `PROVIDER=mock`
   on another port and pointing selected sessions at it (backlog: per-session
   provider selection; for the demo, two pipelines with disjoint session sets).
 
+Local alternative (no Gemini access): a GPU box serves llama-server on the LAN
+(`docker compose -f infra/compose.yml --profile infra up llama`, reachable as
+`http://gpu-box:8080`) and the laptop runs
+`INFERENCE_URLS=http://gpu-box:8080 PROVIDER=openai-compat make pipeline`.
+
 ## Event deployment checklist
 
-1. Server with a GPU, Docker, and the venue network reaching it on 3000 and 8090
+1. Server with Docker, outbound internet to the Gemini API (or a GPU for the
+   local path), and the venue network reaching it on 3000 and 8090
    (or behind a reverse proxy with WebSocket support for `/v1/sessions/*/ingest`).
 2. `cp infra/.env.example infra/.env`, set secrets, `PUBLIC_WEB_URL`,
-   `PUBLIC_PIPELINE_WS_URL` (must be `wss://` when the site is `https://`).
-3. `make model-pull` while on good connectivity.
+   `PUBLIC_PIPELINE_WS_URL` (must be `wss://` when the site is `https://`),
+   `GEMINI_API_KEY`.
+3. Local path only: `make model-pull` while on good connectivity.
 4. `docker compose -f infra/compose.yml --profile all up -d`, then
    `make db-push` once (or the `web` container runs migrations at start).
 5. Log into `/admin`, create one session per stage, open the operator page on
@@ -194,7 +208,7 @@ ROCm on the RX 6600 (gfx1032) is not officially supported and needs
 ## Operations notes
 
 - Logs: `docker compose logs -f pipeline` shows one JSON line per chunk with
-  latency; `llama` logs slot usage.
+  latency; on the local path, `llama` logs slot usage.
 - Restarting the pipeline drops in-flight audio only; sessions must be
   restarted from the admin panel (they show `error` / `status_timeout`).
 - Postgres volume `pgdata` holds all transcripts; back it up after the event.

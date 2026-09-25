@@ -13,7 +13,7 @@ exists.
 | Web logic | Vitest | Export (golden files), chunk-merging reducer, cookie signing, locale resolution, dictionary parity, Zod schemas |
 | Route handlers | Vitest with a test database (`DATABASE_URL_TEST`) | Events endpoint (auth, atomic batch, upsert), export route, health |
 | End to end | `scripts/smoke.sh` | Replay -> pipeline (mock) -> web -> SSE -> export, without a model |
-| Model quality | `scripts/transcribe-file.sh`, `scripts/wer.mjs` | Manual, per language pair, against fixture ground truth |
+| Model quality | `scripts/transcribe-file.sh` (local path; a Gemini variant ships with the provider task), `scripts/wer.mjs` | Manual, per language pair, against fixture ground truth |
 | Windows inference scripts | `scripts/windows-inference.test.ps1` (also via `.\dev.ps1 test-inference`) | `dev.ps1`, `infra/pull-model.ps1`, `infra/start-inference.ps1` and `scripts/transcribe-file.ps1` against a stub HTTP server, stub `ffmpeg` and a compiled `llama-server` stub, including `infra/.env` / `.env.example` sourcing through `infra/env.ps1`; no model, no network beyond localhost |
 | Performance | `scripts/bench-latency.sh` | Latency percentiles for N parallel sessions on real hardware |
 | UI | Manual checklists in component docs; Playwright in the backlog | Audience, admin, overlay |
@@ -66,8 +66,9 @@ end-to-end path.
 
 - `scripts/transcribe-file.sh <wav> [source] [target]` (on native Windows:
   `.\scripts\transcribe-file.ps1 <wav> [source] [target]`): cuts the first 10 s,
-  sends one AST request to `INFERENCE_URLS`, prints the raw model output and
-  the parsed transcript and translation. First thing to run on a new machine.
+  sends one AST request to `INFERENCE_URLS` (local path), prints the raw model
+  output and the parsed transcript and translation. First thing to run on a
+  new machine. The Gemini variant does the same against `GEMINI_API_KEY`.
   `scripts/windows-inference.test.ps1` (or `.\dev.ps1 test-inference`) verifies
   the PowerShell scripts offline on Windows PowerShell 5.1+ and exits non-zero
   on any failure.
@@ -80,7 +81,7 @@ end-to-end path.
 `scripts/bench-latency.sh <sessions> [seconds]` seeds `<sessions>` replay
 sessions with `loop: true`, runs them for the given time (default 120 s), then
 queries `segments` for p50/p95 `latencyMs`, `chunksDropped` and throughput per
-session, and prints a table. Run it on the demo box with 1, 2 and 4 sessions to
+session, and prints a table. Run it on the demo machine with 1, 2 and 4 sessions to
 fill the capacity table in [deployment.md](deployment.md).
 
 ## Conventions

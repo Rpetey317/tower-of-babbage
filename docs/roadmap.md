@@ -10,9 +10,12 @@ L 3-5 h of focused work. Status values: `todo`, `doing`, `done`. Update the
 status here when you start and finish.
 
 Three lanes can run in parallel from the start: **web** (`apps/web`),
-**pipeline** (`services/pipeline`), **infra/contract/fixtures**. The critical
-path to the first end-to-end demo is
-M0-01 -> M0-03 -> M1-07 -> M1-11 -> M1-12 -> M1-13 on the pipeline side and
+**pipeline** (`services/pipeline`), **infra/contract/fixtures**. The demo and
+MVP run inference on the Gemini API (ADR-011); the local Gemma 4 path
+(M0-08, M1-10) is no longer on the critical path. The critical path to the
+first end-to-end demo is
+M0-01 -> M0-03 -> M1-07 -> M1-11 -> M1-12 -> M1-13 plus M1-16 -> M1-14 for
+real Gemini inference on the pipeline side and
 M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 
 ## M0: Scaffold
@@ -39,6 +42,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
   `fixtures/audio/`: `en-kubernetes-60s`, `es-charla-60s` (wav 16 kHz mono, `.txt` ground truth, `.mock.txt` lines), `LICENSES.md`. Recorded or synthesized per [testing.md](testing.md).
   Done when: `ffprobe` reports 16 kHz mono s16 for each file; durations within 5 s of the nominal; licenses documented.
 - **M0-08** · infra · M · deps M0-01 · `doing`
+  Local path only; not required for the Gemini demo.
   `infra/pull-model.sh`, `scripts/transcribe-file.sh`, and a first run of Gemma 4 E2B on the demo box (Vulkan). Record in the issue: `vulkaninfo --summary` VRAM, chosen quant, raw model output for the fixture, time per request.
   Done when: `scripts/transcribe-file.sh fixtures/audio/en-kubernetes-60s.wav` prints an English transcript and a Spanish translation from the real model.
 - **M0-09** · infra · M · deps M0-08 · `doing`
@@ -71,10 +75,11 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M1-08** · pipeline · M · deps M0-06, M1-07 · `todo`
   `internal/ingest`: WebSocket handler (hello, ready, binary frames, stats, end, close codes, producer replacement) with token verification; `file_replay` source spawning ffmpeg with path validation.
   Done when: handler tests with a WebSocket client cover the protocol and close codes; replay test streams the fixture and reports its length within one frame.
-- **M1-09** · pipeline · M · deps M0-03 · `todo`
+- **M1-09** · pipeline · M · deps M0-03 · `done`
   `internal/provider`: `SpeechProvider` interface, `prompts.go` (ASR, AST, translate, glossary block, language names), AST output parser, `mock` provider with `.mock.txt` support.
   Done when: table-driven tests for prompts and parser (well-formed, missing marker, multi-line, 60-term glossary cap); mock returns deterministic output.
 - **M1-10** · pipeline · M · deps M1-09 · `todo`
+  Local path only; not required for the Gemini demo.
   `openaicompat` provider: request building for `input_audio` and `audio_url`, `chat_template_kwargs.enable_thinking=false`, endpoints with round-robin and per-endpoint semaphore, health marking and probing, single retry policy.
   Done when: `httptest` tests assert request bodies for both formats, retry on 5xx, unhealthy marking after 3 failures, recovery after probe.
 - **M1-11** · pipeline · L · deps M1-07, M1-08, M1-09, M0-06 · `todo`
@@ -86,12 +91,18 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M1-13** · infra · M · deps M1-03, M1-05, M1-12 · `todo`
   `scripts/smoke.mjs` and `scripts/smoke.sh` per [testing.md](testing.md) (steps 1-4 and 6; step 5 arrives with M3-02); `make smoke`.
   Done when: `make smoke` is green on a laptop with the mock provider in under 60 s.
-- **M1-14** · infra · M · deps M1-13, M0-08 · `todo`
-  First real run: pipeline on the laptop, llama-server on the demo box, `demo-en` session. Record WER (`scripts/wer.mjs`), p50/p95 latency and any parsing failures in the issue; tune `CHUNK_*` and temperature defaults if needed and update stack.md.
+- **M1-14** · infra · M · deps M1-13, M1-16 · `todo`
+  First real run: pipeline on the laptop with `PROVIDER=gemini` and
+  `GEMINI_API_KEY`, `demo-en` session. Record WER (`scripts/wer.mjs`),
+  p50/p95 latency and any parsing failures in the issue; tune `CHUNK_*`,
+  `GEMINI_MODEL` and temperature defaults if needed and update stack.md.
   Done when: a 60 s replay produces Spanish captions end to end with p95 latency under 10 s, results recorded.
 - **M1-15** · docs · S · deps M1-13 · `todo`
   README quick start verified from a clean clone; add two screenshots (audience, admin).
   Done when: a second person or agent follows README only and reaches captions with the mock provider.
+- **M1-16** · pipeline · M · deps M1-09 · `todo`
+  `gemini` provider per [speech-engine.md](components/speech-engine.md): `generateContent` REST client with `inlineData` WAV, `GEMINI_API_KEY`/`GEMINI_MODEL` config, concurrency bound from `INFERENCE_MAX_CONCURRENCY`, error mapping, single retry on transient failures; Gemini variant of `scripts/transcribe-file.sh`.
+  Done when: `httptest` tests assert request shape, auth header and error handling; a real API call against `en-kubernetes-60s.wav` prints transcript and translation, recorded in the issue.
 
 ## M2: Many sessions and monitoring
 
@@ -105,7 +116,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
   Complete session form: room color picker from the token set, source type with per-type config fields, translation mode, ordered target languages; "Create demo sessions" button on an empty dashboard.
   Done when: creating each source type persists the right `sourceConfig`; demo button seeds `demo-en` and `demo-es`.
 - **M2-04** · infra · M · deps M2-01, M1-14 · `todo`
-  `scripts/bench-latency.sh`; run on the demo box with 1, 2 and 4 replay sessions; fill the capacity table in [deployment.md](deployment.md).
+  `scripts/bench-latency.sh`; run on the demo machine with the Gemini provider with 1, 2 and 4 replay sessions; fill the capacity table in [deployment.md](deployment.md).
   Done when: the table has measured numbers and the script is reproducible.
 - **M2-05** · infra · M · deps M1-13 · `todo`
   Compose profile `all`: `apps/web/Dockerfile` (standalone), `services/pipeline/Dockerfile`, health checks, migrations at web start, documented `PUBLIC_*` variables.
@@ -161,7 +172,7 @@ Ingest
 - Partial (non-final) segments from a rolling window for lower perceived latency.
 
 Providers
-- `gemini` provider (`generateContent` with inline audio; later the Live API).
+- Gemini Live API provider for streaming transcription, bypassing the chunker.
 - Per-session provider selection; Whisper-family provider for ASR-only setups.
 - Context carry-over of the previous transcript into prompts, with repetition guard.
 

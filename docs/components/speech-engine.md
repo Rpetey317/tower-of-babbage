@@ -3,9 +3,9 @@
 Location: `services/pipeline/internal/provider`.
 
 Turns a chunk of audio into text in the source language and in each target
-language. Everything model-specific lives behind one interface so that Gemma 4
-on llama.cpp (default), Gemma 4 on vLLM, Gemini, or a mock are interchangeable
-through configuration.
+language. Everything model-specific lives behind one interface so that the
+Gemini API (demo and MVP default), Gemma 4 on llama.cpp or vLLM (local path),
+or a mock are interchangeable through configuration.
 
 ## Interface
 
@@ -37,17 +37,40 @@ Set per session (`translationMode` in the [contract](../contract.md)).
 
 | Mode | Calls per chunk | When |
 | --- | --- | --- |
-| `ast` (default) | 1 audio call for the first target language; 1 text call per extra target | Gemma 4's official AST prompt returns transcript and translation together, so the common case (one target) costs one audio-encoder pass |
+| `ast` (default) | 1 audio call for the first target language; 1 text call per extra target | The AST prompt returns transcript and translation together, so the common case (one target) costs one audio call |
 | `asr_then_text` | 1 audio call, then 1 text call per target | Providers without AST, or when AST output proves unreliable for a language pair |
 
 If the AST output cannot be parsed the runner emits the transcript alone, logs
 `provider_bad_output`, and performs a `Translate` call for that chunk.
 
-## Provider: `openai-compat`
+## Provider: `gemini`
+
+Demo and MVP provider. Speaks `generateContent` over REST:
+
+```
+POST https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent
+x-goog-api-key: {GEMINI_API_KEY}
+
+{ "contents": [{ "parts": [
+  { "inlineData": { "mimeType": "audio/wav", "data": "<base64 wav>" } },
+  { "text": "<prompt>" }
+]}],
+  "generationConfig": { "temperature": 0.2, "maxOutputTokens": 256 } }
+```
+
+The same ASR/AST/translate prompts are used; Gemini answers the AST format, so
+the interface's `TranscribeAndTranslate` applies. `GEMINI_MODEL` selects the
+model (default `gemini-2.5-flash`); `GEMINI_API_KEY` is required. In-flight
+calls are bounded by `INFERENCE_MAX_CONCURRENCY` and `INFERENCE_TIMEOUT_SECONDS`;
+`Healthy` reports whether the API is reachable. Later option: the Live API for
+streaming transcription, which would bypass the chunker; the interface would
+gain a streaming method at that point.
+
+## Provider: `openai-compat` (local path)
 
 Speaks `POST {base}/v1/chat/completions`. Works with llama.cpp `llama-server`
 and vLLM; the only difference is the audio content block, chosen by
-`INFERENCE_AUDIO_FORMAT`.
+`INFERENCE_AUDIO_FORMAT`. Not used by the Gemini demo.
 
 llama.cpp (`input_audio`, base64 WAV):
 
@@ -89,8 +112,8 @@ Endpoints and health:
 
 ## Prompts
 
-Language names are spelled out in English (`English`, `Spanish`, `Portuguese`),
-following Google's prompt structures for Gemma 4.
+Language names are spelled out in English (`English`, `Spanish`, `Portuguese`).
+The same prompt structures are sent to Gemini and to Gemma 4.
 
 ASR (`Transcribe`):
 
@@ -148,21 +171,14 @@ If a file `<replay file stem>.mock.txt` exists next to a `file_replay` source, i
 lines are used in order as transcripts instead, which makes demos readable.
 Used by `make smoke`, UI development and multi-session load tests.
 
-## Provider: `gemini` (backlog)
-
-Same prompts through the Gemini API `generateContent` with `inlineData`
-(`audio/wav`), `GEMINI_API_KEY` from the environment, one model name from
-configuration. Later option: the Live API for streaming transcription, which
-would bypass the chunker; the interface would gain a streaming method at that
-point. Not needed for the local-first goal, kept in the design so the pipeline
-never assumes llama.cpp.
-
 ## Sizing
 
-Per 6 s chunk on Gemma 4 E2B: ~40 audio tokens plus ~120 prompt tokens in,
-~60-100 tokens out in `ast` mode. On the RX 6600 with Vulkan expect roughly
-1-2.5 s per call; a single llama-server with `--parallel 4` sustains one or two
-live sessions. See [architecture.md](../architecture.md) for the latency budget
+Per 6 s chunk: ~120 prompt tokens in, ~60-100 tokens out in `ast` mode. A
+Gemini `generateContent` call takes roughly 1-4 s including the network round
+trip; concurrency is bounded by the API rate limit rather than by hardware. On
+the local path (Gemma 4 E2B on the RX 6600 with Vulkan) expect roughly 1-2.5 s
+per call; a single llama-server with `--parallel 4` sustains one or two live
+sessions. See [architecture.md](../architecture.md) for the latency budget
 and [deployment.md](../deployment.md) for hardware.
 
 ## Verification
@@ -171,8 +187,11 @@ and [deployment.md](../deployment.md) for hardware.
   well-formed, missing-marker and multi-line outputs.
 - `openaicompat_test.go`: `httptest` server asserting request shape for both
   audio formats, round-robin, unhealthy marking and retry.
+- `gemini_test.go`: `httptest` server asserting the `generateContent` request
+  shape, auth header, error mapping and timeout.
 - Manual: `make infra-up` then `scripts/transcribe-file.sh fixtures/audio/en-kubernetes-60s.wav`
-  prints transcript and translation for the first chunk. On native Windows run
-  `.\dev.ps1 inference` in one terminal and `.\dev.ps1 transcribe` in another
-  (see [deployment.md](../deployment.md)); `scripts/windows-inference.test.ps1`
-  exercises the PowerShell path offline.
+  prints transcript and translation for the first chunk against a local
+  endpoint; a Gemini variant does the same against the API. On native Windows
+  run `.\dev.ps1 inference` in one terminal and `.\dev.ps1 transcribe` in
+  another (see [deployment.md](../deployment.md));
+  `scripts/windows-inference.test.ps1` exercises the PowerShell path offline.
