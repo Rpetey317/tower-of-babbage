@@ -154,6 +154,7 @@ func startRunner(t *testing.T, p provider.SpeechProvider, mode string) (*Registr
 		t.Fatalf("start: %v", err)
 	}
 	t.Cleanup(runner.Stop)
+	t.Cleanup(reg.Shutdown)
 	return reg, runner, events
 }
 

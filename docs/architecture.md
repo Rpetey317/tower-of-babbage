@@ -109,9 +109,12 @@ Key properties:
 ## Scaling model
 
 - One session = one runner goroutine group inside the pipeline: ingest reader,
-  chunker, a bounded request queue, one or more provider workers, an emitter.
+  chunker, a bounded request queue, an emitter. Provider workers are shared:
+  a single scheduler owned by the session registry hands out up to
+  `INFERENCE_MAX_CONCURRENCY` slots and picks the next chunk round-robin over
+  the session queues, so concurrent sessions share capacity fairly.
 - Provider capacity is bounded by `INFERENCE_MAX_CONCURRENCY` (in-flight
-  requests). For `openai-compat`, `INFERENCE_URLS` lists the endpoints and the
+  requests across all sessions). For `openai-compat`, `INFERENCE_URLS` lists the endpoints and the
   per-endpoint semaphore is matched to llama-server `--parallel`; for `gemini`
   the bound is tuned to the API rate limit.
 - Backpressure: when a session's request queue is full the chunker merges the

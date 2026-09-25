@@ -18,8 +18,8 @@ import (
 )
 
 // Runner owns one active run of a session: it turns producer frames into
-// chunks, sends them to the provider through a bounded queue, and emits
-// contract events in chunk order. It implements ingest.Sink.
+// chunks, queues them for the shared scheduler, and emits contract events in
+// chunk order. It implements ingest.Sink.
 type Runner struct {
 	sessionID string
 	req       contract.SessionStartRequest
@@ -27,15 +27,22 @@ type Runner struct {
 	provider  provider.SpeechProvider
 	events    Events
 	source    func(context.Context, ingest.Sink) error
+	sched     *scheduler
 	logger    *slog.Logger
 	onDone    func()
 
 	chunker *chunk.Chunker
 	chunkMu sync.Mutex // serializes producer Push/Flush and the stop flush
 	queue   chan chunk.Chunk
+	results chan chunkResult
+	runCtx  context.Context
+	cancel  context.CancelFunc
 	stopCh  chan struct{}
 	done    chan struct{}
 	stop    sync.Once
+
+	outMu       sync.Mutex // guards outstanding, shared with the scheduler
+	outstanding []int      // dispatched chunk indexes, sorted
 
 	startedWall time.Time
 
@@ -51,25 +58,31 @@ type Runner struct {
 	lastError atomic.Value // string
 }
 
-func newRunner(sessionID string, req contract.SessionStartRequest, cfg Config,
+// newRunner builds a runner; runCtx derives from the registry's base context
+// so a run's lifetime is bound to the pipeline, not to the caller of Start.
+func newRunner(baseCtx context.Context, sessionID string, req contract.SessionStartRequest, cfg Config,
 	p provider.SpeechProvider, events Events,
-	source func(context.Context, ingest.Sink) error, logger *slog.Logger,
-	onDone func()) *Runner {
+	source func(context.Context, ingest.Sink) error, sched *scheduler,
+	logger *slog.Logger, onDone func()) *Runner {
+	c := cfg.withDefaults()
 	r := &Runner{
 		sessionID:   sessionID,
 		req:         req,
-		cfg:         cfg.withDefaults(),
+		cfg:         c,
 		provider:    p,
 		events:      events,
 		source:      source,
+		sched:       sched,
 		logger:      logger.With("sessionId", sessionID, "runId", req.RunID),
 		onDone:      onDone,
-		chunker:     chunk.New(cfg.Chunk),
+		chunker:     chunk.New(c.Chunk),
 		queue:       make(chan chunk.Chunk, queueSize),
+		results:     make(chan chunkResult, c.MaxConcurrency),
 		stopCh:      make(chan struct{}),
 		done:        make(chan struct{}),
-		startedWall: cfg.withDefaults().Now(),
+		startedWall: c.Now(),
 	}
+	r.runCtx, r.cancel = context.WithCancel(baseCtx)
 	r.status.Store("starting")
 	return r
 }
@@ -120,6 +133,39 @@ func (r *Runner) Flush() {
 // QueueDepth implements ingest.Sink.
 func (r *Runner) QueueDepth() int { return len(r.queue) }
 
+// popQueued removes the oldest queued chunk and records its index as
+// outstanding in one critical section, so the run loop's drain check never
+// sees an empty queue while a chunk is in transit to a worker. Called only by
+// the scheduler.
+func (r *Runner) popQueued() (chunk.Chunk, bool) {
+	r.outMu.Lock()
+	defer r.outMu.Unlock()
+	select {
+	case ch := <-r.queue:
+		r.outstanding = insertSorted(r.outstanding, ch.Index)
+		return ch, true
+	default:
+		return chunk.Chunk{}, false
+	}
+}
+
+// outstandingLen and minOutstanding read the dispatched-index list under its
+// mutex for the run loop's emit and drain checks.
+func (r *Runner) outstandingLen() int {
+	r.outMu.Lock()
+	defer r.outMu.Unlock()
+	return len(r.outstanding)
+}
+
+func (r *Runner) minOutstanding() int {
+	r.outMu.Lock()
+	defer r.outMu.Unlock()
+	if len(r.outstanding) == 0 {
+		return -1
+	}
+	return r.outstanding[0]
+}
+
 func (r *Runner) stopping() bool {
 	select {
 	case <-r.stopCh:
@@ -129,11 +175,13 @@ func (r *Runner) stopping() bool {
 	}
 }
 
-// enqueue adds a chunk to the bounded queue. On overflow the oldest queued
-// chunk is dropped with a chunk_dropped log event (ingest.md backpressure).
+// enqueue adds a chunk to the bounded queue and wakes the scheduler. On
+// overflow the oldest queued chunk is dropped with a chunk_dropped log event
+// (ingest.md backpressure).
 func (r *Runner) enqueue(ch chunk.Chunk) {
 	select {
 	case r.queue <- ch:
+		r.sched.notify()
 		return
 	default:
 	}
@@ -146,38 +194,41 @@ func (r *Runner) enqueue(ch chunk.Chunk) {
 	default:
 	}
 	r.queue <- ch
+	r.sched.notify()
 }
+
+// beginStop asks the run to wind down without waiting; waitDone blocks until
+// the dispatcher drained and closed done. Registry.Shutdown uses the pair to
+// stop many sessions in parallel.
+func (r *Runner) beginStop() {
+	r.stop.Do(func() { close(r.stopCh) })
+}
+
+func (r *Runner) waitDone() { <-r.done }
 
 // Stop winds the run down: the buffered audio flushes through the queue,
 // workers drain, final segments emit, then a status event with idle closes
 // the run (contract section 2). Safe to call more than once.
 func (r *Runner) Stop() {
-	r.stop.Do(func() {
-		close(r.stopCh)
-		<-r.done
-	})
+	r.beginStop()
+	r.waitDone()
 }
 
-// run is the dispatcher goroutine owned by the runner. It consumes the chunk
-// queue with a bounded worker pool, reorders results so segments emit in
-// chunk order, and beats the status heartbeat until stop is requested and
-// the queue drains.
-func (r *Runner) run(ctx context.Context) {
+// run is the dispatcher goroutine owned by the runner. The shared scheduler
+// pulls chunks from the queue and delivers provider results on r.results;
+// this loop reorders them so segments emit in chunk order and beats the
+// status heartbeat until stop is requested and the pipeline drains.
+func (r *Runner) run() {
 	defer close(r.done)
+	defer r.cancel()
 	defer r.onDone()
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
 	if r.source != nil {
-		go r.runSource(ctx)
+		go r.runSource(r.runCtx)
 	}
 	r.setStatus("running")
 
-	results := make(chan chunkResult, r.cfg.MaxConcurrency)
-	sem := make(chan struct{}, r.cfg.MaxConcurrency) // bounds provider calls
-	var outstanding []int                            // dispatched chunk indexes, sorted
-	pending := make(map[int]chunkResult)             // finished results awaiting their turn
+	pending := make(map[int]chunkResult) // finished results awaiting their turn
 
 	heartbeat := time.NewTicker(r.cfg.StatusInterval)
 	defer heartbeat.Stop()
@@ -195,26 +246,16 @@ func (r *Runner) run(ctx context.Context) {
 				}
 				r.chunkMu.Unlock()
 			}
-			if len(r.queue) == 0 && len(outstanding) == 0 && len(pending) == 0 {
+			if len(r.queue) == 0 && r.outstandingLen() == 0 && len(pending) == 0 {
 				r.setStatus("idle")
 				return
 			}
 		}
 		select {
-		case sem <- struct{}{}:
-			// A provider slot is free: take the next queued chunk for it.
-			// Holding the queue this way is what makes backpressure work —
-			// while every worker is busy the queue stays full.
-			select {
-			case ch := <-r.queue:
-				outstanding = insertSorted(outstanding, ch.Index)
-				go func() { results <- r.process(ctx, ch) }()
-			default:
-				<-sem
-			}
-		case res := <-results:
-			<-sem
-			outstanding = removeIndex(outstanding, res.index)
+		case res := <-r.results:
+			r.outMu.Lock()
+			r.outstanding = removeIndex(r.outstanding, res.index)
+			r.outMu.Unlock()
 			pending[res.index] = res
 			// Emit every pending result no longer overtaken by an earlier
 			// chunk: anything still queued precedes everything dispatched so
@@ -223,7 +264,7 @@ func (r *Runner) run(ctx context.Context) {
 			// wedge the ordering.
 			for len(pending) > 0 && len(r.queue) == 0 {
 				lowest := minPending(pending)
-				if len(outstanding) > 0 && outstanding[0] < lowest {
+				if earlier := r.minOutstanding(); earlier >= 0 && earlier < lowest {
 					break
 				}
 				r.emitResult(pending[lowest])
