@@ -8,6 +8,7 @@ import { mergedGlossary } from "~/server/api/routers/admin";
 import { db } from "~/server/db";
 import { glossaryTerms, sessionEvents, sessions } from "~/server/db/schema";
 
+import { ExportLinks } from "../../_components/export-links";
 import { GlossaryEditor } from "../../_components/glossary-editor";
 import { SessionActions } from "../../_components/session-actions";
 import { SessionEventsLog } from "../../_components/session-events-log";
@@ -94,6 +95,15 @@ export default async function SessionPage({
 					{copy.adminColLastError}: {session.lastError}
 				</p>
 			)}
+			<h2 className="mt-8 font-display text-2xl uppercase tracking-wide">
+				{copy.adminExportTitle}
+			</h2>
+			<ExportLinks
+				languages={[
+					...new Set([session.sourceLanguage, ...session.targetLanguages]),
+				]}
+				sessionId={session.id}
+			/>
 			<h2 className="mt-8 font-display text-2xl uppercase tracking-wide">
 				{copy.adminEditTitle}
 			</h2>

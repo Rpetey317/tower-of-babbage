@@ -95,6 +95,7 @@ export const es = {
 	adminFormError: "No se pudo guardar. Revisá los campos.",
 	adminDeleteConfirm:
 		"¿Eliminar esta sesión? Se borran sus segmentos y eventos.",
+	adminExportTitle: "Exportar",
 
 	adminColAudio: "Audio",
 	adminColQueue: "Cola",
