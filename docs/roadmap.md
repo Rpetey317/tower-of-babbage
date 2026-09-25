@@ -38,7 +38,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M0-07** · fixtures · S · deps none · `done`
   `fixtures/audio/`: `en-kubernetes-60s`, `es-charla-60s` (wav 16 kHz mono, `.txt` ground truth, `.mock.txt` lines), `LICENSES.md`. Recorded or synthesized per [testing.md](testing.md).
   Done when: `ffprobe` reports 16 kHz mono s16 for each file; durations within 5 s of the nominal; licenses documented.
-- **M0-08** · infra · M · deps M0-01 · `todo`
+- **M0-08** · infra · M · deps M0-01 · `doing`
   `infra/pull-model.sh`, `scripts/transcribe-file.sh`, and a first run of Gemma 4 E2B on the demo box (Vulkan). Record in the issue: `vulkaninfo --summary` VRAM, chosen quant, raw model output for the fixture, time per request.
   Done when: `scripts/transcribe-file.sh fixtures/audio/en-kubernetes-60s.wav` prints an English transcript and a Spanish translation from the real model.
 
