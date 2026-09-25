@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import {
 	ConnectionPill,
 	type PillKind,
-} from "~/app/(audience)/_components/connection-pill";
+} from "~/app/_components/connection-pill";
 import {
 	audioStalled,
 	formatAudioMs,

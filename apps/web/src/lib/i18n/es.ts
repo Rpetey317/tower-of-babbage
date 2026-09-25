@@ -117,4 +117,22 @@ export const es = {
 		"Cola por encima de 2: la inferencia es lenta para esta sesión",
 	adminAlarmLatency: "p95 por encima de 10 s",
 	adminAlarmDropped: "Se descartaron chunks",
+
+	adminCancel: "Cancelar",
+	adminGlossaryNav: "Glosario",
+	adminGlossaryTitle: "Glosario global",
+	adminGlossarySessionHeading: "Glosario de la sesión",
+	adminGlossaryLiveHint:
+		"Los cambios se envían a la sesión mientras está en curso.",
+	adminGlossaryEffectiveHeading: "Glosario efectivo (sesión + global)",
+	adminGlossaryEmpty: "Todavía no hay términos.",
+	adminGlossaryTerm: "Término",
+	adminGlossaryTranslation: "Traducción",
+	adminGlossaryTranslationHint:
+		"Traducción vacía: el término se escribe igual y no se traduce.",
+	adminGlossaryNotes: "Notas",
+	adminGlossaryBulkLabel: "Pegado masivo",
+	adminGlossaryBulkHint:
+		"Un término por línea; «término = traducción» para fijar la traducción. Los duplicados se omiten.",
+	adminGlossaryBulkSubmit: "Importar",
 };
