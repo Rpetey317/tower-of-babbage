@@ -148,7 +148,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M5-01** · web · M · deps M1-03 · `done`
   `/overlay/[slug]` per [obs-overlay.md](components/obs-overlay.md): transparent background, parameters, outline text, silent reconnect, empty when not live.
   Done when: manual check over a checkered background and in OBS Browser Source during a mock run; at most `lines` lines visible.
-- **M5-02** · docs · S · deps M5-01 · `doing`
+- **M5-02** · docs · S · deps M5-01 · `done`
   Operator instructions for OBS and vMix verified with screenshots in the doc.
   Done when: a person unfamiliar with the project adds the overlay following the doc.
 

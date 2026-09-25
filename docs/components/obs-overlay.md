@@ -39,15 +39,78 @@ is reserved: Atkinson Hyperlegible is the only caption font today.
   disconnected so the stream never displays debugging text.
 - Session not live: renders empty.
 
-## OBS setup (documented for operators)
+## Operator setup (OBS / vMix)
 
-1. Sources > Add > Browser. URL: `https://<host>/overlay/gran-sala?lang=es`.
-2. Width 1920, height 1080, FPS 30, custom CSS empty (the page handles it).
-3. Check "Shutdown source when not visible" off, "Refresh browser when scene
-   becomes active" on.
-4. Place at the bottom; the page already leaves the safe margin.
+The overlay is a plain web page with a transparent background: any tool that
+renders a web page can layer it over the program video. The screenshots below
+show the `demo-en` session streaming Spanish captions.
 
-vMix: Add Input > Web Browser, same URL, 1920x1080.
+### Before you start
+
+- The machine running OBS/vMix must reach the web app over the network. The
+  URL is `http://<host>:<port>/overlay/<slug>` — the deployed site URL at an
+  event, or `http://localhost:3000` on a local run.
+- The slug is the last segment of the audience URL `/s/<slug>`; the session
+  page in `/admin` links to both.
+- Pick the caption language from the session's target languages with `lang`
+  (Spanish: `?lang=es`).
+- Sanity check: while the session is live, open the URL in a normal browser —
+  captions float at the bottom over nothing. An empty page when the session
+  is not live is by design.
+
+Common recipes (session slug `gran-sala`):
+
+| Look | URL |
+| --- | --- |
+| Bottom third, Spanish (defaults) | `/overlay/gran-sala?lang=es` |
+| Original above translation | `...?mode=both` |
+| Own lower-third graphics behind the text | `...?lang=es&bg=none` |
+| Top-aligned | `...?lang=es&align=top` |
+| Larger text, three lines | `...?lang=es&size=64&lines=3` |
+
+This is what the URL renders while a session is running — here composited
+over a test image, the same way the streaming tool composites it over video:
+
+![Overlay rendering Spanish captions over program video](../images/overlay/overlay-over-video.png)
+
+### OBS Studio
+
+1. In the **Sources** dock, click `+` > **Browser**. Name it (e.g.
+   `Captions`).
+
+   ![Adding a Browser source in OBS](../images/overlay/obs-add-source.png)
+
+2. In the source properties:
+   - **URL**: paste the overlay URL.
+   - **Width** `1920`, **Height** `1080`, **FPS** `30`.
+   - Leave **Custom CSS** empty; the page styles itself.
+   - Uncheck **Shutdown source when not visible** so switching scenes does
+     not blank the captions.
+   - Check **Refresh browser when scene becomes active** so a stuck
+     connection reloads when the scene is re-entered.
+
+   ![Browser source properties with the overlay URL](../images/overlay/obs-browser-source-props.png)
+
+3. The source matches the 1080p canvas, so leave it filling the frame: the
+   page already keeps the safe margin. Do not crop or resize it.
+
+   ![OBS preview with captions over the program feed](../images/overlay/obs-preview.png)
+
+### vMix
+
+1. **Add Input** > **Web Browser**.
+2. Paste the URL; set Width `1920`, Height `1080`.
+3. The URL lands as a normal input — key it over the program with an
+   Overlay/Mix channel or a layer on the main output.
+
+### Troubleshooting
+
+| Symptom | Cause and fix |
+| --- | --- |
+| Blank page, nothing ever shows | Session not `running`, wrong slug, or the web app unreachable from the streaming PC — open the URL in a normal browser first |
+| Captions cropped or off-position | Source not filling the frame; set Width/Height to the canvas size and leave the source unscaled |
+| Captions blank after switching scenes | **Shutdown source when not visible** is checked — uncheck it |
+| Doubled captions | The overlay source was added twice |
 
 ## Backlog
 
@@ -61,3 +124,10 @@ vMix: Add Input > Web Browser, same URL, 1920x1080.
   background extension; text is readable, background transparent.
 - Manual with OBS: add the source during a `make smoke` run; captions appear
   and scroll with at most `lines` visible.
+- The render screenshots in this doc were produced at 1920x1080 with headless
+  Chromium against a `running` `demo-en` session (status heartbeat and
+  segments posted to `/api/internal/events`), then composited over test
+  backgrounds with ffmpeg. `docs/images/overlay/overlay-checkered.png` is the
+  transparency proof:
+
+  ![Overlay over a checkerboard — transparent background](../images/overlay/overlay-checkered.png)
