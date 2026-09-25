@@ -78,7 +78,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M1-09** · pipeline · M · deps M0-03 · `done`
   `internal/provider`: `SpeechProvider` interface, `prompts.go` (ASR, AST, translate, glossary block, language names), AST output parser, `mock` provider with `.mock.txt` support.
   Done when: table-driven tests for prompts and parser (well-formed, missing marker, multi-line, 60-term glossary cap); mock returns deterministic output.
-- **M1-10** · pipeline · M · deps M1-09 · `todo`
+- **M1-10** · pipeline · M · deps M1-09 · `done`
   Local path only; not required for the Gemini demo.
   `openaicompat` provider: request building for `input_audio` and `audio_url`, `chat_template_kwargs.enable_thinking=false`, endpoints with round-robin and per-endpoint semaphore, health marking and probing, single retry policy.
   Done when: `httptest` tests assert request bodies for both formats, retry on 5xx, unhealthy marking after 3 failures, recovery after probe.
