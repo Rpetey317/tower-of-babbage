@@ -53,9 +53,11 @@ script wraps `scripts/smoke.mjs` (Node 22, no dependencies):
 2. Create session `smoke-<timestamp>` with `sourceType: file_replay`,
    `path: en-kubernetes-60s.wav`, `en -> es`, through the tRPC HTTP endpoint.
 3. Start it; poll `sessions.bySlug` until `running` (max 10 s).
-4. Open the SSE subscription for 25 s; require at least 3 `original` and 3
-   `translation` segments with increasing `chunkIndex`, `latencyMs` under
-   2000 for the mock.
+4. Open the SSE subscription until at least 3 `original` and 3 `translation`
+   segments arrive (default deadline 40 s, `SMOKE_SSE_SECONDS`); require
+   increasing `chunkIndex` and `latencyMs` under 2000 for the mock. Under the
+   default chunk cut rules the fixture's third chunk lands near 30 s, so the
+   window is a deadline, not a fixed wait.
 5. Stop; export SRT for `es`; require at least 3 cues with valid timestamps.
 6. Delete the session. Exit non-zero with a clear message on any failed step.
 

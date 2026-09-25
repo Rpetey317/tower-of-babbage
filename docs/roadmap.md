@@ -88,7 +88,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M1-12** · pipeline · S · deps M1-11 · `done`
   Control API `start`, `stop`, `GET /v1/sessions` wired to the runner, validation errors `unsupported_language` and `invalid_source`, `409 already_running`.
   Done when: handler tests cover the responses in contract section 2.
-- **M1-13** · infra · M · deps M1-03, M1-05, M1-12 · `todo`
+- **M1-13** · infra · M · deps M1-03, M1-05, M1-12 · `done`
   `scripts/smoke.mjs` and `scripts/smoke.sh` per [testing.md](testing.md) (steps 1-4 and 6; step 5 arrives with M3-02); `make smoke`.
   Done when: `make smoke` is green on a laptop with the mock provider in under 60 s.
 - **M1-14** · infra · M · deps M1-13, M1-16 · `todo`
