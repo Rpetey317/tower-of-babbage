@@ -89,14 +89,19 @@ type testProvider struct {
 	astErr  error
 	delay   time.Duration
 	callCnt chan struct{}
+
+	glossMu    sync.Mutex
+	glossaries [][]contract.GlossaryTerm // glossary seen by each call, in order
 }
 
 func (p *testProvider) Transcribe(ctx context.Context, a provider.WAV, req provider.TranscribeRequest) (provider.Transcript, error) {
+	p.note(req.Glossary)
 	p.track(ctx)
 	return p.inner.Transcribe(ctx, a, req)
 }
 
 func (p *testProvider) TranscribeAndTranslate(ctx context.Context, a provider.WAV, req provider.ASTRequest) (provider.ASTResult, bool, error) {
+	p.note(req.Glossary)
 	p.track(ctx)
 	if p.astErr != nil {
 		return provider.ASTResult{}, false, p.astErr
@@ -105,8 +110,15 @@ func (p *testProvider) TranscribeAndTranslate(ctx context.Context, a provider.WA
 }
 
 func (p *testProvider) Translate(ctx context.Context, text string, req provider.TranslateRequest) (string, error) {
+	p.note(req.Glossary)
 	p.track(ctx)
 	return p.inner.Translate(ctx, text, req)
+}
+
+func (p *testProvider) note(glossary []contract.GlossaryTerm) {
+	p.glossMu.Lock()
+	defer p.glossMu.Unlock()
+	p.glossaries = append(p.glossaries, glossary)
 }
 
 func (p *testProvider) Healthy() bool { return true }
@@ -329,6 +341,38 @@ func TestASTFallbackLogsBadOutput(t *testing.T) {
 	defer events.mu.Unlock()
 	if events.segments[1].Kind != "translation" {
 		t.Fatalf("expected fallback translation, got %+v", events.segments[1])
+	}
+}
+
+func TestGlossaryUpdateAppliesToNextChunk(t *testing.T) {
+	p := &testProvider{inner: provider.NewMock(0, nil)}
+	reg, runner, events := startRunner(t, p, "ast")
+	sink, ok := reg.Lookup("sess-1")
+	if !ok {
+		t.Fatal("session not running")
+	}
+
+	feed(t, sink, speechBlocks(1, 1200, 400))
+	waitFor(t, "first chunk segments", func() bool { return events.segmentCount() >= 2 })
+
+	if _, err := reg.UpdateGlossary("sess-1", []contract.GlossaryTerm{{Term: "Nerdearla"}}); err != nil {
+		t.Fatalf("update glossary: %v", err)
+	}
+
+	feed(t, sink, speechBlocks(1, 1200, 400))
+	waitFor(t, "second chunk segments", func() bool { return events.segmentCount() >= 4 })
+	runner.Stop()
+
+	p.glossMu.Lock()
+	defer p.glossMu.Unlock()
+	if len(p.glossaries) < 2 {
+		t.Fatalf("expected at least 2 provider calls, got %d", len(p.glossaries))
+	}
+	if len(p.glossaries[0]) != 0 {
+		t.Fatalf("first call glossary = %+v, want empty", p.glossaries[0])
+	}
+	if got := p.glossaries[1]; len(got) != 1 || got[0].Term != "Nerdearla" {
+		t.Fatalf("second call glossary = %+v, want [Nerdearla]", got)
 	}
 }
 

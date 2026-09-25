@@ -38,17 +38,22 @@ survive the cap.
 
 ## Post-processing (optional, off by default)
 
-`GLOSSARY_ENFORCE=true` makes the pipeline apply case-insensitive, whole-word
-replacement of each `term` in transcripts with its canonical spelling, and of
-each translated term in translations. Useful when the model keeps mangling a
-name; risky for short terms, hence off by default. Not planned for M4 unless
-prompting alone proves insufficient during testing.
+`GLOSSARY_ENFORCE=true` makes the pipeline post-process provider output with
+`provider.EnforceGlossary` (`services/pipeline/internal/provider/enforce.go`):
+case-insensitive, whole-word replacement of each `term` in transcripts with
+its canonical spelling, and of each `term` in translations with its
+`translation` (a `null` or empty translation keeps the canonical term).
+Letters, digits and `_` count as word characters, so `kubectlx` or
+`my_kubectl` stay untouched. Useful when the model keeps mangling a name;
+risky for short terms, hence off by default.
 
 ## Verification
 
 - Vitest: merge, dedupe and cap logic in `admin.sessions.start`.
 - Go: prompt rendering with an empty list, one untranslated term, one translated
-  term, and 60 terms (capped at 40).
+  term, and 60 terms (capped at 40); `PUT /v1/sessions/{id}/glossary` handler
+  tests; runner test showing the next chunk's provider call uses the new list;
+  `EnforceGlossary` table tests for whole-word behaviour.
 - Manual: replay `fixtures/audio/en-kubernetes-60s.wav` with and without a
   glossary containing `kubectl`, `etcd`, `Nerdearla`; compare spellings in the
   exported TXT.
