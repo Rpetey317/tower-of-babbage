@@ -6,7 +6,7 @@ import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import {
 	ConnectionPill,
 	type PillKind,
-} from "~/app/(audience)/_components/connection-pill";
+} from "~/app/_components/connection-pill";
 import { RoomDot, roomColorClass } from "~/app/(audience)/_components/room-dot";
 import {
 	type CaptionMode,

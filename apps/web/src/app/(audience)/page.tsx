@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 
-import { ConnectionPill } from "~/app/(audience)/_components/connection-pill";
+import { ConnectionPill } from "~/app/_components/connection-pill";
 import { RoomDot } from "~/app/(audience)/_components/room-dot";
 import { getDictionary } from "~/lib/i18n";
 import { getRequestLocale } from "~/lib/i18n/server";

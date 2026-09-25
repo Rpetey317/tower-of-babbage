@@ -26,11 +26,12 @@ paths and `..` are rejected.
    Processing is off by default because the input is usually a mixer feed or a
    microphone pointed at the PA; a toggle enables it for laptop mics.
 2. `new AudioContext({ sampleRate: 16000 })`. Modern Chromium, Firefox and Safari
-   honor the requested rate; if `context.sampleRate` differs, the worklet
+   honor the requested rate; if `context.sampleRate` differs, the page
    resamples linearly.
-3. An `AudioWorkletProcessor` converts Float32 samples to Int16, accumulates
-   200 ms (3200 samples, 6400 bytes) and posts each frame to the main thread,
-   which forwards it on the WebSocket as a binary message.
+3. An `AudioWorkletProcessor` forwards raw Float32 blocks to the main thread,
+   where `src/lib/pcm.ts` resamples, converts to Int16 and accumulates 200 ms
+   frames (3200 samples, 6400 bytes) that are sent on the WebSocket as binary
+   messages. Conversion lives on the main thread so it stays unit-testable.
 4. The page shows: connection state, level meter, `audioReceivedMs` from the
    server `stats` messages, and reconnects automatically with a fresh token when
    the socket drops.

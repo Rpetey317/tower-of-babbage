@@ -52,6 +52,24 @@ export const es = {
 	adminStatusStopping: "Deteniendo",
 	adminStatusError: "Error",
 
+	adminBackToSession: "Volver a la sesión",
+	adminViewOperator: "Ver página de operador",
+	operatorTitle: "Operador",
+	operatorStartCapture: "Iniciar captura",
+	operatorStopCapture: "Detener captura",
+	operatorReconnect: "Reconectar ahora",
+	operatorProcessing: "Procesamiento de micrófono (eco y ruido)",
+	operatorLevel: "Nivel",
+	operatorAudioReceived: "Audio recibido",
+	operatorQueueDepth: "Cola del pipeline",
+	operatorStatusConnecting: "Conectando…",
+	operatorNotRunning:
+		"La sesión no está en curso; la reconexión sigue intentando.",
+	operatorCloseReason: "Conexión cerrada",
+	operatorMicError: "No se pudo acceder al micrófono. Revisá los permisos.",
+	operatorWrongSource:
+		"Esta sesión no usa el micrófono del navegador como fuente.",
+
 	adminCreateTitle: "Nueva sesión",
 	adminEditTitle: "Editar sesión",
 	adminFieldTitle: "Título",
