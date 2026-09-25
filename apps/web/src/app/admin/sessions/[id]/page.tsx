@@ -65,6 +65,12 @@ export default async function SessionPage({
 				>
 					{copy.adminViewAudience}
 				</Link>
+				<Link
+					className="text-cyan text-sm hover:underline"
+					href={`/admin/sessions/${session.id}/operator`}
+				>
+					{copy.adminViewOperator}
+				</Link>
 			</div>
 			{session.lastError && (
 				<p className="mt-4 text-coral text-sm">

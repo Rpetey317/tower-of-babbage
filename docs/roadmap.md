@@ -66,7 +66,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M1-05** · web · L · deps M1-01, M0-05 · `done`
   Admin foundation per [admin-panel.md](components/admin-panel.md): login with cookie, middleware, `protectedProcedure`, `admin.sessions.*` CRUD, `start` and `stop` calling the control API, `ingestToken`, minimal `/admin` list with start/stop buttons, `/admin/sessions/new` and `/admin/sessions/[id]` forms.
   Done when: cookie tests pass; `start` request body matches `session-start.request.json` (mocked fetch); manual: create, start, stop against the running pipeline.
-- **M1-06** · web · M · deps M1-05 · `todo`
+- **M1-06** · web · M · deps M1-05 · `done`
   Operator page `/admin/sessions/[id]/operator`: `getUserMedia`, 16 kHz `AudioContext`, worklet to Int16 200 ms frames, WebSocket per contract section 4, level meter, reconnect with fresh token.
   Done when: manual: `audioReceivedMs` grows at wall-clock rate for 2 minutes in Chromium and Firefox; reconnect after killing the pipeline works.
 - **M1-07** · pipeline · M · deps M0-03 · `done`
