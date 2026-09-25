@@ -16,6 +16,7 @@ import {
 	sessionStopRequestSchema,
 } from "~/lib/contract";
 import { mintIngestToken } from "~/lib/contract/token.server";
+import { isSupportedLanguage } from "~/lib/languages";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
 import { demoSessions } from "~/server/db/demo-sessions";
@@ -24,7 +25,10 @@ import { subscribe } from "~/server/events/bus";
 import { latestStats } from "~/server/events/state";
 
 const uuid = z.string().uuid();
-const language = z.string().regex(/^[a-z]{2,8}$/);
+// The contract wire format accepts any BCP 47 primary tag; session
+// configuration is limited to SUPPORTED_LANGUAGES so unsupportable
+// sessions cannot be persisted (the pipeline still re-checks at start).
+const language = z.string().refine(isSupportedLanguage, "unsupported_language");
 const slug = z
 	.string()
 	.regex(

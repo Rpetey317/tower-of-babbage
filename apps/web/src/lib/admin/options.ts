@@ -19,8 +19,6 @@ export const sourceTypes = [
 
 export const translationModes = ["ast", "asr_then_text"] as const;
 
-export const languages = ["en", "es", "pt"] as const;
-
 export const deviceBackends = ["pulse", "alsa", "pipewire"] as const;
 
 /**

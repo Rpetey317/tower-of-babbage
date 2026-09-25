@@ -78,6 +78,7 @@ export const es = {
 	adminFieldRoomColor: "Color de sala",
 	adminFieldSourceLanguage: "Idioma de origen",
 	adminFieldTargetLanguages: "Idiomas de destino (en orden)",
+	adminLanguageUnverified: "sin verificar",
 	adminFieldSourceType: "Tipo de fuente",
 	adminFieldReplayPath: "Archivo de audio",
 	adminFieldReplayLoop: "Repetir en bucle",

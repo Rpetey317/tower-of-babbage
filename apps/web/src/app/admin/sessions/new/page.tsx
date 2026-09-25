@@ -23,6 +23,7 @@ export default async function NewSessionPage() {
 					roomColor: copy.adminFieldRoomColor,
 					sourceLanguage: copy.adminFieldSourceLanguage,
 					targetLanguages: copy.adminFieldTargetLanguages,
+					languageUnverified: copy.adminLanguageUnverified,
 					sourceType: copy.adminFieldSourceType,
 					replayPath: copy.adminFieldReplayPath,
 					replayLoop: copy.adminFieldReplayLoop,
