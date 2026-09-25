@@ -255,6 +255,47 @@ describe("admin.sessions.stop", () => {
 		expect(result.status).toBe("idle");
 		expect(calls).toHaveLength(0);
 	});
+
+	it("releases a run still held by the pipeline on an error session", async () => {
+		const runId = "5c3b3b4e-1c1e-4a2e-9f0d-9a3f5b1e2d77";
+		await db
+			.update(sessions)
+			.set({
+				status: "error",
+				currentRunId: runId,
+				lastError: "status_timeout",
+			})
+			.where(eq(sessions.id, sessionId));
+		const calls = stubPipeline(202, { runId, status: "stopping" });
+
+		const caller = await adminCaller();
+		const result = await caller.admin.sessions.stop({ id: sessionId });
+		expect(result.status).toBe("stopping");
+		expect((await fixtureSession())?.status).toBe("stopping");
+		expect(calls).toHaveLength(1);
+	});
+
+	it("re-arms directly to idle when the pipeline holds no such run", async () => {
+		const runId = "5c3b3b4e-1c1e-4a2e-9f0d-9a3f5b1e2d77";
+		await db
+			.update(sessions)
+			.set({
+				status: "error",
+				currentRunId: runId,
+				lastError: "status_timeout",
+			})
+			.where(eq(sessions.id, sessionId));
+		const calls = stubPipeline(404, { error: "no_such_run" });
+
+		const caller = await adminCaller();
+		const result = await caller.admin.sessions.stop({ id: sessionId });
+		expect(result.status).toBe("idle");
+
+		const session = await fixtureSession();
+		expect(session?.status).toBe("idle");
+		expect(session?.lastError).toBeNull();
+		expect(calls).toHaveLength(1);
+	});
 });
 
 describe("admin.ingestToken", () => {

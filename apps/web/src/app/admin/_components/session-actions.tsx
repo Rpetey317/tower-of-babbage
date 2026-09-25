@@ -49,7 +49,7 @@ export function SessionActions({
 			</button>
 			<button
 				className="rounded-md bg-orange px-3 py-1 font-semibold text-ink-950 text-sm transition-opacity disabled:opacity-40"
-				disabled={pending || !busyStatuses.has(status)}
+				disabled={pending || !(busyStatuses.has(status) || status === "error")}
 				onClick={() => stop.mutate({ id: sessionId })}
 				type="button"
 			>

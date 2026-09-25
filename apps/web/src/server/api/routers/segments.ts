@@ -82,7 +82,7 @@ export async function catchUpSegments(opts: {
 				inArray(segments.language, opts.languages),
 			),
 		)
-		.orderBy(asc(segments.chunkIndex));
+		.orderBy(asc(segments.chunkIndex), asc(segments.language));
 	return rows.map(rowToSegmentEvent);
 }
 
@@ -134,7 +134,7 @@ export const segmentsRouter = createTRPCRouter({
 						inArray(segments.language, input.languages),
 					),
 				)
-				.orderBy(desc(segments.chunkIndex))
+				.orderBy(desc(segments.chunkIndex), desc(segments.language))
 				.limit(input.limit);
 			return rows.reverse().map(rowToSegmentEvent);
 		}),

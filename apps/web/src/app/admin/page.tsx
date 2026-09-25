@@ -1,4 +1,4 @@
-import { desc } from "drizzle-orm";
+import { asc, desc } from "drizzle-orm";
 import Link from "next/link";
 
 import { getDictionary } from "~/lib/i18n";
@@ -26,7 +26,7 @@ export default async function AdminPage() {
 	const rows = await db
 		.select()
 		.from(sessions)
-		.orderBy(desc(sessions.createdAt));
+		.orderBy(desc(sessions.createdAt), asc(sessions.id));
 
 	return (
 		<main className="mx-auto max-w-6xl px-4 py-12">

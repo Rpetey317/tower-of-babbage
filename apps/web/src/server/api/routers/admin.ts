@@ -105,7 +105,7 @@ export const adminRouter = createTRPCRouter({
 			const rows = await db
 				.select()
 				.from(sessions)
-				.orderBy(desc(sessions.createdAt));
+				.orderBy(desc(sessions.createdAt), asc(sessions.id));
 			return rows.map((session) => ({
 				...session,
 				stats: latestStats(session.id) ?? null,
@@ -254,12 +254,14 @@ export const adminRouter = createTRPCRouter({
 				}
 				if (
 					session.status === "idle" ||
-					session.status === "error" ||
-					session.status === "stopping"
+					session.status === "stopping" ||
+					(session.status === "error" && !session.currentRunId)
 				) {
 					return { runId: session.currentRunId, status: session.status };
 				}
 
+				// An error session may still hold a run on the pipeline (e.g.
+				// the watchdog timed it out), so stop is allowed for it too.
 				await db
 					.update(sessions)
 					.set({ status: "stopping", updatedAt: new Date() })
@@ -278,6 +280,23 @@ export const adminRouter = createTRPCRouter({
 								result.detail ? `: ${result.detail}` : ""
 							}`,
 						);
+					}
+					if (result.status === 404) {
+						// The pipeline holds no such run, so no status event will
+						// arrive to flip the session; re-arm it directly.
+						await db
+							.update(sessions)
+							.set({
+								status: "idle",
+								lastError: null,
+								stoppedAt: new Date(),
+								updatedAt: new Date(),
+							})
+							.where(eq(sessions.id, session.id));
+						return {
+							runId: session.currentRunId,
+							status: "idle" as const,
+						};
 					}
 				} catch (error) {
 					const message =
