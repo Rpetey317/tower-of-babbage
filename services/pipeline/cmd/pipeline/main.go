@@ -13,6 +13,7 @@ import (
 
 	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/config"
 	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/control"
+	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/ingest"
 )
 
 func main() {
@@ -36,7 +37,10 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	server := &http.Server{Handler: control.NewHandler(cfg), ReadHeaderTimeout: 5 * time.Second}
+	// The ingest endpoint is live but reports 4004 until the session runner
+	// (M1-11) supplies a Sessions registry.
+	ingestWS := ingest.NewHandler(nil, cfg.SharedSecret, nil, logger)
+	server := &http.Server{Handler: control.NewHandler(cfg, ingestWS), ReadHeaderTimeout: 5 * time.Second}
 	serveDone := make(chan error, 1)
 	go func() { serveDone <- server.Serve(listener) }()
 	logger.Info("pipeline listening", "address", listener.Addr().String(), "provider", cfg.Provider)
