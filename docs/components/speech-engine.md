@@ -189,6 +189,9 @@ and [deployment.md](../deployment.md) for hardware.
   audio formats, round-robin, unhealthy marking and retry.
 - `gemini_test.go`: `httptest` server asserting the `generateContent` request
   shape, auth header, error mapping and timeout.
-- Manual: `scripts/transcribe-file.sh fixtures/audio/en-kubernetes-60s.wav`
+- Manual: `make infra-up` then `scripts/transcribe-file.sh fixtures/audio/en-kubernetes-60s.wav`
   prints transcript and translation for the first chunk against a local
-  endpoint; a Gemini variant does the same against the API.
+  endpoint; a Gemini variant does the same against the API. On native Windows
+  run `.\dev.ps1 inference` in one terminal and `.\dev.ps1 transcribe` in
+  another (see [deployment.md](../deployment.md));
+  `scripts/windows-inference.test.ps1` exercises the PowerShell path offline.

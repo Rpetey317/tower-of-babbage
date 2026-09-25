@@ -14,6 +14,7 @@ exists.
 | Route handlers | Vitest with a test database (`DATABASE_URL_TEST`) | Events endpoint (auth, atomic batch, upsert), export route, health |
 | End to end | `scripts/smoke.sh` | Replay -> pipeline (mock) -> web -> SSE -> export, without a model |
 | Model quality | `scripts/transcribe-file.sh` (local path; a Gemini variant ships with the provider task), `scripts/wer.mjs` | Manual, per language pair, against fixture ground truth |
+| Windows inference scripts | `scripts/windows-inference.test.ps1` (also via `.\dev.ps1 test-inference`) | `dev.ps1`, `infra/pull-model.ps1`, `infra/start-inference.ps1` and `scripts/transcribe-file.ps1` against a stub HTTP server, stub `ffmpeg` and a compiled `llama-server` stub, including `infra/.env` / `.env.example` sourcing through `infra/env.ps1`; no model, no network beyond localhost |
 | Performance | `scripts/bench-latency.sh` | Latency percentiles for N parallel sessions on real hardware |
 | UI | Manual checklists in component docs; Playwright in the backlog | Audience, admin, overlay |
 
@@ -63,10 +64,14 @@ end-to-end path.
 
 ## Model checks
 
-- `scripts/transcribe-file.sh <wav> [source] [target]`: cuts the first 10 s,
+- `scripts/transcribe-file.sh <wav> [source] [target]` (on native Windows:
+  `.\scripts\transcribe-file.ps1 <wav> [source] [target]`): cuts the first 10 s,
   sends one AST request to `INFERENCE_URLS` (local path), prints the raw model
   output and the parsed transcript and translation. First thing to run on a
   new machine. The Gemini variant does the same against `GEMINI_API_KEY`.
+  `scripts/windows-inference.test.ps1` (or `.\dev.ps1 test-inference`) verifies
+  the PowerShell scripts offline on Windows PowerShell 5.1+ and exits non-zero
+  on any failure.
 - `scripts/wer.mjs <exported.txt> <ground-truth.txt>`: word error rate after
   lowercasing and stripping punctuation. Not a gate; recorded in the roadmap
   task notes when tuning chunk sizes or prompts.

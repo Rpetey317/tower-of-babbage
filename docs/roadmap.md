@@ -45,6 +45,9 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
   Local path only; not required for the Gemini demo.
   `infra/pull-model.sh`, `scripts/transcribe-file.sh`, and a first run of Gemma 4 E2B on the demo box (Vulkan). Record in the issue: `vulkaninfo --summary` VRAM, chosen quant, raw model output for the fixture, time per request.
   Done when: `scripts/transcribe-file.sh fixtures/audio/en-kubernetes-60s.wav` prints an English transcript and a Spanish translation from the real model.
+- **M0-09** · infra · M · deps M0-08 · `doing`
+  Native Windows inference path (issue #47): `dev.ps1` task runner (`model-pull`, `inference`, `transcribe`, `test-inference`), `infra/pull-model.ps1` (SHA-256-checked GGUF + BF16 mmproj download), `infra/start-inference.ps1` (foreground Vulkan launcher), `infra/env.ps1` dotenv sourcing (`infra/.env` over `infra/.env.example`, process env wins), `scripts/transcribe-file.ps1` (first-10-s fixture AST check), `scripts/windows-inference.test.ps1` offline stub tests, and deployment docs for the RX 6600 Vulkan path on Windows.
+  Done when: `powershell -NoProfile -File dev.ps1 test-inference` passes on Windows PowerShell 5.1+ and `dev.ps1 transcribe` prints an English transcript and a Spanish translation on the demo box. The real-GPU acceptance run was deferred by the user (scripts and instructions only); hardware evidence is still pending and should be recorded in issue #47.
 
 ## M1: Vertical slice (one session, end to end)
 

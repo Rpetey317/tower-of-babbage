@@ -84,7 +84,10 @@ PROVIDER=openai-compat make pipeline
 ```
 
 Deployment for an event, hardware guidance and every environment variable:
-[docs/deployment.md](docs/deployment.md).
+[docs/deployment.md](docs/deployment.md). On native Windows the `dev.ps1`
+task runner covers the inference-only path without Docker: `.\dev.ps1
+model-pull`, `.\dev.ps1 inference` and `.\dev.ps1 transcribe`; see the native
+Windows section there.
 
 ## Repository layout
 

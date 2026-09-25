@@ -30,9 +30,9 @@ file completely before touching the repository.
 | `apps/web/` | Postgres schema and all public HTTP: audience view, admin panel, overlay, export, tRPC, internal events endpoint | TypeScript (T3: Next.js App Router, tRPC v11, Drizzle, Tailwind v4, Biome) |
 | `services/pipeline/` | Audio ingest, chunking, speech providers, event emission, control API. Never touches the database. | Go 1.24 |
 | `packages/contract/` | JSON fixtures that both sides must parse. Source of truth is [docs/contract.md](docs/contract.md). | JSON |
-| `infra/` | `compose.yml`, Dockerfiles, llama-server configuration, model download script | YAML, shell |
+| `infra/` | `compose.yml`, Dockerfiles, llama-server configuration, model download script | YAML, shell, PowerShell |
 | `fixtures/audio/` | Short speech samples with license notes | WAV |
-| `scripts/` | `smoke.sh`, benchmarks | shell |
+| `scripts/` | `smoke.sh`, benchmarks | shell, PowerShell |
 | `docs/` | Design docs, roadmap, decisions, context logs, change summaries | Markdown |
 
 Cross-boundary rule: the web app talks to the pipeline only through the control API, the pipeline talks to the web app only through the events endpoint, and the browser talks to the pipeline only through the ingest WebSocket. No shared database, no shared in-memory state.
@@ -53,6 +53,11 @@ All day-to-day commands go through the root `Makefile` so they are identical for
 | `make smoke` | End-to-end run with the mock provider and a fixture WAV, see [docs/testing.md](docs/testing.md) |
 
 Until M0 lands these targets do not exist yet; M0 tasks create them.
+
+For native Windows inference without `make`, use the `dev.ps1` task runner
+(`.\dev.ps1 model-pull`, `.\dev.ps1 inference`, `.\dev.ps1 transcribe` and
+`.\dev.ps1 test-inference` for the offline suite); see the native Windows
+section of [docs/deployment.md](docs/deployment.md).
 
 ## 5. Contract changes
 

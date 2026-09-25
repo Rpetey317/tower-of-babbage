@@ -82,12 +82,24 @@ services/pipeline/
   `web`. Profiles `infra` (postgres + Vulkan llama), `cpu` (CPU llama), and
   `all`. `make infra-up` selects CPU when `/dev/dri` is unavailable. The
   `llama`/`llama-cpu` services are only needed for local inference.
+- `dev.ps1`: Windows PowerShell 5.1+ task runner (`model-pull`, `inference`,
+  `transcribe`, `test-inference`) dispatching to the scripts below.
 - `infra/pull-model.sh`: downloads the selected GGUF and BF16 mmproj into
   `infra/models/` (git-ignored), checking their Hugging Face SHA-256 values.
+  `infra/pull-model.ps1` is the native Windows equivalent (Windows PowerShell
+  5.1+, `curl.exe`; honors `LLAMA_MODEL`, `HF_ENDPOINT`, `MODEL_DIR`).
+- `infra/env.ps1`: dotenv loader dot-sourced by `dev.ps1` and the `.ps1`
+  scripts before they read `$env:` variables. Fills unset process variables
+  from `infra/.env` first, then `infra/.env.example`; a variable already set
+  in the process environment always wins.
+- `infra/start-inference.ps1`: validates the `LLAMA_*` overrides
+  (`LLAMA_SERVER_EXE`, `LLAMA_BIND_HOST`, `LLAMA_PORT`, `LLAMA_PARALLEL`,
+  `LLAMA_CTX`, `LLAMA_NGL`) and launches the local Vulkan `llama-server.exe`
+  in the foreground (explicit path, then `bin/llama`, then `PATH`).
 - Root `Makefile` targets: `infra-up`, `infra-down`, `model-pull`, `web`,
   `pipeline`, `db-push`, `test`, `lint`, `smoke`.
 - `scripts/smoke.sh`: end-to-end check with the mock provider (see [testing.md](testing.md)).
-- `scripts/transcribe-file.sh`: sends the first chunk of a WAV to the configured inference endpoint and prints the result; quickest way to check a model setup. A Gemini variant ships with the gemini provider task.
+- `scripts/transcribe-file.sh` (`scripts/transcribe-file.ps1` on native Windows): sends the first chunk of a WAV to the configured inference endpoint and prints the result; quickest way to check a model setup. A Gemini variant ships with the gemini provider task.
 - `scripts/bench-latency.sh`: replays a fixture through N sessions and reports latency percentiles.
 
 ## Environment variables
@@ -130,7 +142,7 @@ Pipeline (`services/pipeline/.env`):
 | `GEMINI_API_KEY` | none, required for `PROVIDER=gemini` | Google AI Studio API key, sent as `x-goog-api-key` |
 | `GEMINI_MODEL` | `gemini-2.5-flash` | Model id in `generateContent` requests; `gemini-2.5-flash-lite` is the cheaper option |
 
-Compose-level (`infra/.env`, consumed by `infra/compose.yml` and mapped onto the variables above):
+Compose-level (`infra/.env`, consumed by `infra/compose.yml` and mapped onto the variables above; also sourced by the native Windows PowerShell scripts via `infra/env.ps1`):
 
 | Variable | Purpose |
 | --- | --- |
