@@ -55,7 +55,8 @@ x-goog-api-key: {GEMINI_API_KEY}
   { "inlineData": { "mimeType": "audio/wav", "data": "<base64 wav>" } },
   { "text": "<prompt>" }
 ]}],
-  "generationConfig": { "temperature": 0.2, "maxOutputTokens": 256 } }
+  "generationConfig": { "temperature": 0.2, "maxOutputTokens": 256,
+    "thinkingConfig": { "thinkingBudget": 0 } } }
 ```
 
 The same ASR/AST/translate prompts are used; Gemini answers the AST format, so

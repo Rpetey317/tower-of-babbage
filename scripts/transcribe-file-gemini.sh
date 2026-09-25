@@ -64,7 +64,7 @@ node -e '
       {inlineData: {mimeType: "audio/wav", data: audioData}},
       {text: process.argv[2]}
     ]}],
-    generationConfig: {temperature, maxOutputTokens: 256}
+    generationConfig: {temperature, maxOutputTokens: 256, thinkingConfig: {thinkingBudget: 0}}
   };
   process.stdout.write(JSON.stringify(request));
 ' "$work_dir/chunk.b64" "$prompt" "$model" \
