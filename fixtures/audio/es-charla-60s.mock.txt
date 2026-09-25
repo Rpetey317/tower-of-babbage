@@ -1,0 +1,13 @@
+Bienvenidas y bienvenidos a esta charla sobre subtítulos en vivo.
+Imaginá que estás en una conferencia con varias salas.
+Querés seguir una presentación desde el celular.
+La voz de cada escenario llega a una pequeña tubería de audio.
+La tubería pide una transcripción y una traducción para la página del público.
+En esta demostración hablamos de Kubernetes, contenedores y latencia.
+Si un contenedor se detiene, otro puede continuar el trabajo.
+El texto tiene que aparecer mientras la persona todavía habla del mismo tema.
+Buscamos pausas naturales para dividir el audio en fragmentos cortos.
+El equipo de producción puede revisar la demora y ajustar cada fragmento.
+Así evitamos frases partidas a la mitad y conservamos el sentido.
+Mirá cómo cambia el subtítulo después de cada pausa.
+Cualquier persona debería poder elegir un idioma y entender la charla.
