@@ -15,35 +15,7 @@ export default async function NewSessionPage() {
 			<h1 className="mt-4 font-display text-4xl uppercase tracking-wide">
 				{copy.adminCreateTitle}
 			</h1>
-			<SessionForm
-				labels={{
-					title: copy.adminFieldTitle,
-					slug: copy.adminFieldSlug,
-					room: copy.adminFieldRoom,
-					roomColor: copy.adminFieldRoomColor,
-					sourceLanguage: copy.adminFieldSourceLanguage,
-					targetLanguages: copy.adminFieldTargetLanguages,
-					languageUnverified: copy.adminLanguageUnverified,
-					sourceType: copy.adminFieldSourceType,
-					replayPath: copy.adminFieldReplayPath,
-					replayLoop: copy.adminFieldReplayLoop,
-					streamUrl: copy.adminFieldStreamUrl,
-					deviceName: copy.adminFieldDeviceName,
-					deviceBackend: copy.adminFieldDeviceBackend,
-					browserMicHint: copy.adminFieldBrowserMicHint,
-					targetAdd: copy.adminTargetAdd,
-					targetMoveUp: copy.adminTargetMoveUp,
-					targetMoveDown: copy.adminTargetMoveDown,
-					targetRemove: copy.adminTargetRemove,
-					translationMode: copy.adminFieldTranslationMode,
-					createSubmit: copy.adminCreateSubmit,
-					saveSubmit: copy.adminSaveSubmit,
-					formError: copy.adminFormError,
-					delete: copy.adminDelete,
-					deleteConfirm: copy.adminDeleteConfirm,
-				}}
-				mode="create"
-			/>
+			<SessionForm copy={copy} mode="create" />
 		</main>
 	);
 }

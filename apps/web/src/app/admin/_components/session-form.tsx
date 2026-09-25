@@ -11,6 +11,7 @@ import {
 	sourceTypes,
 	translationModes,
 } from "~/lib/admin/options";
+import type { Dictionary } from "~/lib/i18n";
 import { SUPPORTED_LANGUAGES } from "~/lib/languages";
 import { api } from "~/trpc/react";
 
@@ -26,32 +27,31 @@ export interface SessionFormValues {
 	translationMode: string;
 }
 
-interface SessionFormLabels {
-	title: string;
-	slug: string;
-	room: string;
-	roomColor: string;
-	sourceLanguage: string;
-	targetLanguages: string;
-	languageUnverified: string;
-	sourceType: string;
-	replayPath: string;
-	replayLoop: string;
-	streamUrl: string;
-	deviceName: string;
-	deviceBackend: string;
-	browserMicHint: string;
-	targetAdd: string;
-	targetMoveUp: string;
-	targetMoveDown: string;
-	targetRemove: string;
-	translationMode: string;
-	createSubmit: string;
-	saveSubmit: string;
-	formError: string;
-	delete: string;
-	deleteConfirm: string;
-}
+/** Dictionary keys for each enum option; options render as "label (code)". */
+const sourceTypeKeys = {
+	browser_mic: "adminSourceTypeBrowserMic",
+	file_replay: "adminSourceTypeFileReplay",
+	stream_url: "adminSourceTypeStreamUrl",
+	device: "adminSourceTypeDevice",
+} as const satisfies Record<(typeof sourceTypes)[number], keyof Dictionary>;
+
+const translationModeKeys = {
+	ast: "adminTranslationModeAst",
+	asr_then_text: "adminTranslationModeAsrThenText",
+} as const satisfies Record<
+	(typeof translationModes)[number],
+	keyof Dictionary
+>;
+
+const roomColorKeys = {
+	violet: "adminRoomColorViolet",
+	cyan: "adminRoomColorCyan",
+	green: "adminRoomColorGreen",
+	orange: "adminRoomColorOrange",
+	yellow: "adminRoomColorYellow",
+	magenta: "adminRoomColorMagenta",
+	grey: "adminRoomColorGrey",
+} as const satisfies Record<(typeof roomColors)[number], keyof Dictionary>;
 
 const inputClass =
 	"rounded-md border border-ink-700 bg-ink-800 px-3 py-2 text-ink-100 focus-visible:outline-2 focus-visible:outline-cyan";
@@ -75,12 +75,12 @@ export function SessionForm({
 	mode,
 	sessionId,
 	initial,
-	labels,
+	copy,
 }: {
 	mode: "create" | "edit";
 	sessionId?: string;
 	initial?: SessionFormValues;
-	labels: SessionFormLabels;
+	copy: Dictionary;
 }) {
 	const router = useRouter();
 	const [title, setTitle] = useState(initial?.title ?? "");
@@ -181,7 +181,7 @@ export function SessionForm({
 	}
 
 	function confirmDelete() {
-		if (!sessionId || !window.confirm(labels.deleteConfirm)) return;
+		if (!sessionId || !window.confirm(copy.adminDeleteConfirm)) return;
 		remove.mutate(
 			{ id: sessionId },
 			{
@@ -194,7 +194,7 @@ export function SessionForm({
 	return (
 		<form className="mt-6 grid max-w-2xl gap-4" onSubmit={submit}>
 			<label className="flex flex-col gap-1 text-ink-300 text-sm">
-				{labels.title}
+				{copy.adminFieldTitle}
 				<input
 					className={inputClass}
 					onChange={(event) => {
@@ -206,7 +206,7 @@ export function SessionForm({
 				/>
 			</label>
 			<label className="flex flex-col gap-1 text-ink-300 text-sm">
-				{labels.slug}
+				{copy.adminFieldSlug}
 				<input
 					className={inputClass}
 					onChange={(event) => {
@@ -220,7 +220,7 @@ export function SessionForm({
 			</label>
 			<div className="grid grid-cols-2 gap-4">
 				<label className="flex flex-col gap-1 text-ink-300 text-sm">
-					{labels.room}
+					{copy.adminFieldRoom}
 					<input
 						className={inputClass}
 						onChange={(event) => setRoom(event.target.value)}
@@ -228,12 +228,12 @@ export function SessionForm({
 					/>
 				</label>
 				<fieldset className="flex flex-col gap-1 text-ink-300 text-sm">
-					<legend>{labels.roomColor}</legend>
+					<legend>{copy.adminFieldRoomColor}</legend>
 					<div className="flex flex-wrap gap-1.5 py-1">
 						{roomColors.map((color) => (
 							<button
 								aria-pressed={roomColor === color}
-								className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs capitalize transition-colors ${
+								className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs transition-colors ${
 									roomColor === color
 										? "border-cyan text-ink-100"
 										: "border-ink-700 text-ink-300 hover:border-ink-500"
@@ -246,7 +246,7 @@ export function SessionForm({
 									aria-hidden="true"
 									className={`h-3 w-3 rounded-full ${roomColorClasses[color]}`}
 								/>
-								{color}
+								{copy[roomColorKeys[color]]} ({color})
 							</button>
 						))}
 					</div>
@@ -254,7 +254,7 @@ export function SessionForm({
 			</div>
 			<div className="grid grid-cols-2 gap-4">
 				<label className="flex flex-col gap-1 text-ink-300 text-sm">
-					{labels.sourceLanguage}
+					{copy.adminFieldSourceLanguage}
 					<select
 						className={inputClass}
 						onChange={(event) => setSourceLanguage(event.target.value)}
@@ -263,13 +263,13 @@ export function SessionForm({
 						{SUPPORTED_LANGUAGES.map((language) => (
 							<option key={language.code} value={language.code}>
 								{language.code}
-								{language.verified ? "" : ` (${labels.languageUnverified})`}
+								{language.verified ? "" : ` (${copy.adminLanguageUnverified})`}
 							</option>
 						))}
 					</select>
 				</label>
 				<fieldset className="flex flex-col gap-1 text-ink-300 text-sm">
-					<legend>{labels.targetLanguages}</legend>
+					<legend>{copy.adminFieldTargetLanguages}</legend>
 					<ol className="flex flex-col gap-1 py-1">
 						{targetLanguages.map((language, index) => (
 							<li className="flex items-center gap-2" key={language}>
@@ -278,10 +278,10 @@ export function SessionForm({
 									{language}
 									{SUPPORTED_LANGUAGES.find(
 										(option) => option.code === language,
-									)?.verified === false && ` (${labels.languageUnverified})`}
+									)?.verified === false && ` (${copy.adminLanguageUnverified})`}
 								</span>
 								<button
-									aria-label={labels.targetMoveUp}
+									aria-label={copy.adminTargetMoveUp}
 									className="rounded px-1.5 text-ink-300 hover:text-cyan disabled:opacity-30"
 									disabled={index === 0}
 									onClick={() => moveTarget(index, -1)}
@@ -290,7 +290,7 @@ export function SessionForm({
 									↑
 								</button>
 								<button
-									aria-label={labels.targetMoveDown}
+									aria-label={copy.adminTargetMoveDown}
 									className="rounded px-1.5 text-ink-300 hover:text-cyan disabled:opacity-30"
 									disabled={index === targetLanguages.length - 1}
 									onClick={() => moveTarget(index, 1)}
@@ -299,7 +299,7 @@ export function SessionForm({
 									↓
 								</button>
 								<button
-									aria-label={labels.targetRemove}
+									aria-label={copy.adminTargetRemove}
 									className="rounded px-1.5 text-ink-300 hover:text-coral"
 									onClick={() =>
 										setTargetLanguages((current) =>
@@ -325,8 +325,8 @@ export function SessionForm({
 								}
 								type="button"
 							>
-								{labels.targetAdd} {language.code}
-								{language.verified ? "" : ` (${labels.languageUnverified})`}
+								{copy.adminTargetAdd} {language.code}
+								{language.verified ? "" : ` (${copy.adminLanguageUnverified})`}
 							</button>
 						))}
 					</div>
@@ -334,7 +334,7 @@ export function SessionForm({
 			</div>
 			<div className="grid grid-cols-2 gap-4">
 				<label className="flex flex-col gap-1 text-ink-300 text-sm">
-					{labels.sourceType}
+					{copy.adminFieldSourceType}
 					<select
 						className={inputClass}
 						onChange={(event) => setSourceType(event.target.value)}
@@ -342,13 +342,13 @@ export function SessionForm({
 					>
 						{sourceTypes.map((type) => (
 							<option key={type} value={type}>
-								{type}
+								{copy[sourceTypeKeys[type]]} ({type})
 							</option>
 						))}
 					</select>
 				</label>
 				<label className="flex flex-col gap-1 text-ink-300 text-sm">
-					{labels.translationMode}
+					{copy.adminFieldTranslationMode}
 					<select
 						className={inputClass}
 						onChange={(event) => setTranslationMode(event.target.value)}
@@ -356,19 +356,19 @@ export function SessionForm({
 					>
 						{translationModes.map((modeOption) => (
 							<option key={modeOption} value={modeOption}>
-								{modeOption}
+								{copy[translationModeKeys[modeOption]]} ({modeOption})
 							</option>
 						))}
 					</select>
 				</label>
 			</div>
 			{sourceType === "browser_mic" && (
-				<p className="text-ink-500 text-sm">{labels.browserMicHint}</p>
+				<p className="text-ink-500 text-sm">{copy.adminFieldBrowserMicHint}</p>
 			)}
 			{sourceType === "file_replay" && (
 				<div className="grid grid-cols-2 items-end gap-4">
 					<label className="flex flex-col gap-1 text-ink-300 text-sm">
-						{labels.replayPath}
+						{copy.adminFieldReplayPath}
 						<input
 							className={inputClass}
 							onChange={(event) => setReplayPath(event.target.value)}
@@ -384,13 +384,13 @@ export function SessionForm({
 							onChange={(event) => setReplayLoop(event.target.checked)}
 							type="checkbox"
 						/>
-						{labels.replayLoop}
+						{copy.adminFieldReplayLoop}
 					</label>
 				</div>
 			)}
 			{sourceType === "stream_url" && (
 				<label className="flex flex-col gap-1 text-ink-300 text-sm">
-					{labels.streamUrl}
+					{copy.adminFieldStreamUrl}
 					<input
 						className={inputClass}
 						onChange={(event) => setStreamUrl(event.target.value)}
@@ -403,7 +403,7 @@ export function SessionForm({
 			{sourceType === "device" && (
 				<div className="grid grid-cols-2 gap-4">
 					<label className="flex flex-col gap-1 text-ink-300 text-sm">
-						{labels.deviceName}
+						{copy.adminFieldDeviceName}
 						<input
 							className={inputClass}
 							onChange={(event) => setDeviceName(event.target.value)}
@@ -413,7 +413,7 @@ export function SessionForm({
 						/>
 					</label>
 					<label className="flex flex-col gap-1 text-ink-300 text-sm">
-						{labels.deviceBackend}
+						{copy.adminFieldDeviceBackend}
 						<select
 							className={inputClass}
 							onChange={(event) => setDeviceBackend(event.target.value)}
@@ -430,7 +430,7 @@ export function SessionForm({
 			)}
 			{error && (
 				<p className="text-coral text-sm" role="alert">
-					{labels.formError} {error}
+					{copy.adminFormError} {error}
 				</p>
 			)}
 			<div className="flex items-center gap-3">
@@ -439,7 +439,7 @@ export function SessionForm({
 					disabled={pending || targetLanguages.length === 0}
 					type="submit"
 				>
-					{mode === "create" ? labels.createSubmit : labels.saveSubmit}
+					{mode === "create" ? copy.adminCreateSubmit : copy.adminSaveSubmit}
 				</button>
 				{mode === "edit" && (
 					<button
@@ -448,7 +448,7 @@ export function SessionForm({
 						onClick={confirmDelete}
 						type="button"
 					>
-						{labels.delete}
+						{copy.adminDelete}
 					</button>
 				)}
 			</div>
