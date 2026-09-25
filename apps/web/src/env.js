@@ -56,6 +56,9 @@ export const env = createEnv({
 			),
 		NEXT_PUBLIC_DEFAULT_LOCALE: z.enum(["es", "en"]).default("es"),
 	},
+	// Lets `next build` run in the Docker builder stage without real secrets;
+	// the runtime still validates the actual environment.
+	skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 	runtimeEnv: {
 		DATABASE_URL: process.env.DATABASE_URL,
 		DATABASE_URL_TEST: process.env.DATABASE_URL_TEST,

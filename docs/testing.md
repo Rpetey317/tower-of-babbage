@@ -47,8 +47,12 @@ corpora are acceptable only with a permissive license noted in `LICENSES.md`
 ## Smoke test (`scripts/smoke.sh`)
 
 Preconditions: Postgres up, web running on `:3000`, pipeline running with
-`PROVIDER=mock` on `:8090`, `ADMIN_PASSWORD` and `SHARED_SECRET` exported. The
-script wraps `scripts/smoke.mjs` (Node 22, no dependencies):
+`PROVIDER=mock` on `:8090`, `ADMIN_PASSWORD` and `SHARED_SECRET` exported.
+When running against the compose `all` stack the wrapper fills any unset
+variable (`ADMIN_PASSWORD`, `SHARED_SECRET`, `WEB_URL` from `PUBLIC_WEB_URL`,
+`PIPELINE_URL` from `PUBLIC_PIPELINE_WS_URL`) from `infra/.env`; exported
+values always win. The script wraps `scripts/smoke.mjs` (Node 22, no
+dependencies):
 
 1. Log in at `/admin/login`, keep the cookie.
 2. Create session `smoke-<timestamp>` with `sourceType: file_replay`,

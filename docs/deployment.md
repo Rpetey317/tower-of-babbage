@@ -9,7 +9,7 @@ every variable is listed in [stack.md](stack.md).
 | Service | Image | Ports | Profile |
 | --- | --- | --- | --- |
 | `postgres` | `postgres:16-alpine`, volume `pgdata` | 5432 | `infra`, `all` |
-| `llama` | `ghcr.io/ggml-org/llama.cpp:server-vulkan` (or `server-cuda`, `server` for CPU) | 8080 | `infra`, `all` |
+| `llama` | `ghcr.io/ggml-org/llama.cpp:server-vulkan` (or `server-cuda`, `server` for CPU) | 8080 | `infra` |
 | `llama-cpu` | `ghcr.io/ggml-org/llama.cpp:server` | 8080 | `cpu` |
 | `pipeline` | built from `services/pipeline/Dockerfile` (Debian slim, includes ffmpeg) | 8090 | `all` |
 | `web` | built from `apps/web/Dockerfile` (Next.js standalone output) | 3000 | `all` |
@@ -26,13 +26,21 @@ to reach inference. Change `POSTGRES_BIND_HOST` only when remote database access
 is required. Docker Desktop on WSL2 exposes AMD GPUs as `/dev/dxg`,
 which the Vulkan image cannot use, so it selects CPU. The Docker Vulkan path
 requires native Linux; on Windows use the native setup described below.
-`docker compose -f infra/compose.yml --profile all
-up -d` runs the complete GPU stack for an event. Health checks: `pg_isready`,
-`GET :8080/health`, `GET :8090/healthz`, `GET :3000/api/health`.
+`docker compose -f infra/compose.yml --profile all up -d --wait` builds and
+runs the full application stack for an event (Postgres, web, pipeline; add
+`--profile infra` or `--profile cpu` when inference runs in the same stack).
+The `web` container applies the Drizzle migrations before it starts serving.
+`web` and `pipeline` publish on all interfaces (`WEB_BIND_HOST`,
+`PIPELINE_BIND_HOST`) so the venue network can reach them; host ports are
+`WEB_PORT`, `PIPELINE_PORT`, `POSTGRES_PORT`, `LLAMA_PORT`. Health checks:
+`pg_isready`, `GET :8080/health`, `GET :8090/healthz`, `GET :3000/api/health`.
 
 Secrets and hosts come from `infra/.env` (copied from `infra/.env.example`):
 `SHARED_SECRET`, `AUTH_SECRET`, `ADMIN_PASSWORD`, `POSTGRES_PASSWORD`,
-`PUBLIC_WEB_URL`, `PUBLIC_PIPELINE_WS_URL`, `GEMINI_API_KEY` (Gemini path),
+`PUBLIC_WEB_URL`, `PUBLIC_PIPELINE_WS_URL` (published to the browser as
+`NEXT_PUBLIC_PIPELINE_WS_URL`; public variables are also build args because
+Next.js inlines `NEXT_PUBLIC_*` in client bundles), `PROVIDER` (`mock`,
+`gemini` or `openai-compat`), `GEMINI_API_KEY` (Gemini path),
 `LLAMA_*` (local path).
 
 ## Local inference: llama-server
@@ -197,10 +205,12 @@ Local alternative (no Gemini access): a GPU box serves llama-server on the LAN
    (or behind a reverse proxy with WebSocket support for `/v1/sessions/*/ingest`).
 2. `cp infra/.env.example infra/.env`, set secrets, `PUBLIC_WEB_URL`,
    `PUBLIC_PIPELINE_WS_URL` (must be `wss://` when the site is `https://`),
-   `GEMINI_API_KEY`.
-3. Local path only: `make model-pull` while on good connectivity.
-4. `docker compose -f infra/compose.yml --profile all up -d`, then
-   `make db-push` once (or the `web` container runs migrations at start).
+   `PROVIDER=gemini` and `GEMINI_API_KEY`.
+3. Local path only: `make model-pull` while on good connectivity and deploy
+   with `PROVIDER=openai-compat`.
+4. `docker compose -f infra/compose.yml --profile all up -d --wait` (the `web`
+   container applies the migrations itself before serving; for local
+   inference add `--profile infra` or `--profile cpu`).
 5. Log into `/admin`, create one session per stage, open the operator page on
    the laptop at each stage, start sessions.
 6. Print `https://<host>/s/<slug>` as QR codes for the rooms.
