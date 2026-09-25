@@ -172,4 +172,7 @@ and [deployment.md](../deployment.md) for hardware.
 - `openaicompat_test.go`: `httptest` server asserting request shape for both
   audio formats, round-robin, unhealthy marking and retry.
 - Manual: `make infra-up` then `scripts/transcribe-file.sh fixtures/audio/en-kubernetes-60s.wav`
-  prints transcript and translation for the first chunk.
+  prints transcript and translation for the first chunk. On native Windows run
+  `.\dev.ps1 inference` in one terminal and `.\dev.ps1 transcribe` in another
+  (see [deployment.md](../deployment.md)); `scripts/windows-inference.test.ps1`
+  exercises the PowerShell path offline.
