@@ -9,9 +9,11 @@ import (
 	"github.com/Rpetey317/tower-of-babbage/services/pipeline/internal/contract"
 )
 
-// NewHandler exposes the M0 health endpoint. Provider probes and session counts
-// are added when those components exist; unprobed endpoints report unhealthy.
-func NewHandler(cfg config.Config) http.Handler {
+// NewHandler exposes the M0 health endpoint plus the ingest WebSocket route
+// (contract section 4). Provider probes and session counts are added when
+// those components exist; unprobed endpoints report unhealthy. ingestWS may be
+// nil while no session registry exists.
+func NewHandler(cfg config.Config, ingestWS http.Handler) http.Handler {
 	endpoints := make([]contract.EndpointHealth, 0)
 	if cfg.Provider == "openai-compat" {
 		for _, address := range cfg.InferenceURLs {
@@ -30,5 +32,8 @@ func NewHandler(cfg config.Config) http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(response)
 	})
+	if ingestWS != nil {
+		mux.Handle("GET /v1/sessions/{sessionId}/ingest", ingestWS)
+	}
 	return mux
 }

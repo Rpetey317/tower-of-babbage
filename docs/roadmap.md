@@ -72,7 +72,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M1-07** · pipeline · M · deps M0-03 · `done`
   `internal/chunk`: PCM frame type, audio clock, WAV encoder, energy VAD with adaptive noise floor, chunker cut rules from [ingest.md](components/ingest.md).
   Done when: synthetic-signal tests (cuts inside silences, hard cut at max, silent chunks discarded) pass; replay of `en-kubernetes-60s.wav` yields the golden chunk count.
-- **M1-08** · pipeline · M · deps M0-06, M1-07 · `todo`
+- **M1-08** · pipeline · M · deps M0-06, M1-07 · `done`
   `internal/ingest`: WebSocket handler (hello, ready, binary frames, stats, end, close codes, producer replacement) with token verification; `file_replay` source spawning ffmpeg with path validation.
   Done when: handler tests with a WebSocket client cover the protocol and close codes; replay test streams the fixture and reports its length within one frame.
 - **M1-09** · pipeline · M · deps M0-03 · `done`

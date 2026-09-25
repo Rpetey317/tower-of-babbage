@@ -22,7 +22,7 @@ func TestHealth(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 			response := httptest.NewRecorder()
-			NewHandler(test.config).ServeHTTP(response, request)
+			NewHandler(test.config, nil).ServeHTTP(response, request)
 			if response.Code != http.StatusOK || response.Header().Get("Content-Type") != "application/json" {
 				t.Fatalf("unexpected response: %d %v", response.Code, response.Header())
 			}
@@ -48,7 +48,7 @@ func TestHealthRejectsOtherRoutes(t *testing.T) {
 		httptest.NewRequest(http.MethodGet, "/v1/sessions", nil),
 	} {
 		response := httptest.NewRecorder()
-		NewHandler(config.Config{Provider: "mock"}).ServeHTTP(response, request)
+		NewHandler(config.Config{Provider: "mock"}, nil).ServeHTTP(response, request)
 		if response.Code < 400 {
 			t.Fatalf("%s %s returned %d", request.Method, request.URL.Path, response.Code)
 		}
