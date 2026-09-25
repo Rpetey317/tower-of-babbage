@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "contractVersion": 1,
+  "contractVersion": 2,
   "provider": "openai-compat",
   "endpoints": [
     { "url": "http://localhost:8080", "healthy": true }

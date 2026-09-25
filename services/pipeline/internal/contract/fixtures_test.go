@@ -88,6 +88,12 @@ func TestEventVariants(t *testing.T) {
 	if batch.ContractVersion != Version || len(batch.Events) != 4 || batch.Events[0].Segment == nil || batch.Events[1].Segment == nil || batch.Events[2].Status == nil || batch.Events[3].Log == nil {
 		t.Fatalf("unexpected event variants: %+v", batch)
 	}
+	if got := batch.Events[0].Segment.Speaker; got == nil || *got != "S1" {
+		t.Fatalf("first segment speaker = %v, want S1", got)
+	}
+	if got := batch.Events[1].Segment.Speaker; got == nil || *got != "S1" {
+		t.Fatalf("second segment speaker = %v, want S1", got)
+	}
 	for _, input := range []string{
 		`{"type":"unknown"}`,
 		`{"type":"segment","unexpected":true}`,

@@ -8,7 +8,7 @@ import (
 	"fmt"
 )
 
-const Version = 1
+const Version = 2
 
 // HealthResponse is returned by GET /healthz.
 type HealthResponse struct {
@@ -128,10 +128,13 @@ type SegmentEvent struct {
 	Kind       string `json:"kind"`
 	Language   string `json:"language"`
 	Text       string `json:"text"`
-	IsFinal    bool   `json:"isFinal"`
-	StartMs    int    `json:"startMs"`
-	EndMs      int    `json:"endMs"`
-	LatencyMs  int    `json:"latencyMs"`
+	// Speaker optionally labels who spoke the chunk ("S1", "S2", ...); nil
+	// leaves the field out of the JSON event (contract version 2).
+	Speaker   *string `json:"speaker,omitempty"`
+	IsFinal   bool    `json:"isFinal"`
+	StartMs   int     `json:"startMs"`
+	EndMs     int     `json:"endMs"`
+	LatencyMs int     `json:"latencyMs"`
 }
 
 type StatusEvent struct {
