@@ -54,7 +54,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M1-01** · web · M · deps M0-02 · `done`
   Drizzle schema from [domain-model.md](domain-model.md) (`sessions`, `segments`, `glossary_terms`, `session_events`, enums, indexes), `make db-push`, `pnpm db:seed` creating two `file_replay` demo sessions (`demo-en`, `demo-es`).
   Done when: push succeeds on a clean database; seed is idempotent; `drizzle-kit check` clean.
-- **M1-02** · web · M · deps M1-01, M0-05 · `todo`
+- **M1-02** · web · M · deps M1-01, M0-05 · `done`
   `POST /api/internal/events` per [realtime.md](components/realtime.md): bearer check, Zod, atomic transaction, segment upsert, status application, log insert, bus publish; watchdog for `status_timeout`.
   Done when: route tests cover valid batch, bad bearer, malformed event, duplicate segment (single row), watchdog flips a stale session to `error`.
 - **M1-03** · web · M · deps M1-02 · `todo`
