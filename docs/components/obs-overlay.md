@@ -17,12 +17,17 @@ protocol per tool.
 | `lines` | `2` | Maximum visible lines; older text scrolls out |
 | `size` | `48` | Font size in px at 1080p; scales with viewport width |
 | `align` | `bottom` | `bottom` or `top` |
-| `bg` | `band` | `band` (semi-opaque `ink-950` band behind text), `box` (per-line boxes), `none` |
+| `bg` | `band` | `band` (semi-opaque `ink-900` band behind text), `box` (per-line boxes), `none` |
 | `margin` | `64` | Safe-area margin in px |
 
 Body background is fully transparent (`background: transparent`), no header,
 no controls, no cursor. Text uses Atkinson Hyperlegible with a 2 px outline and
-drop shadow so it survives `bg=none` over busy video.
+drop shadow so it survives `bg=none` over busy video. `font` in the example URL
+is reserved: Atkinson Hyperlegible is the only caption font today.
+
+`size` and `margin` are given in px at 1080p and scale with viewport width
+(`value * 100vw / 1920`). Caption lines wrap at 42 characters per
+[branding.md](../branding.md).
 
 ## Behaviour
 

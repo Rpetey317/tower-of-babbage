@@ -45,4 +45,11 @@ describe("middleware admin gate", () => {
 		const response = await middleware(request("/"));
 		expect(response.headers.get("location")).toBeNull();
 	});
+
+	it("forwards the request path for the overlay chrome check", async () => {
+		const response = await middleware(request("/overlay/demo-en?lines=3"));
+		expect(response.headers.get("x-middleware-request-x-tob-pathname")).toBe(
+			"/overlay/demo-en",
+		);
+	});
 });

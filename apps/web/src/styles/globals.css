@@ -27,3 +27,32 @@
 	--font-caption:
 		var(--font-atkinson-hyperlegible), var(--font-inter), sans-serif;
 }
+
+/* OBS overlay: 2 px text outline + drop shadow so captions survive bg=none.
+   Text-shadow ring is used instead of text-stroke so it renders the same in
+   OBS CEF, Chromium and Firefox. */
+@utility overlay-outline {
+	text-shadow:
+		-2px -2px 0 var(--color-ink-950),
+		2px -2px 0 var(--color-ink-950),
+		-2px 2px 0 var(--color-ink-950),
+		2px 2px 0 var(--color-ink-950),
+		0 -2px 0 var(--color-ink-950),
+		0 2px 0 var(--color-ink-950),
+		-2px 0 0 var(--color-ink-950),
+		2px 0 0 var(--color-ink-950),
+		0 4px 10px rgb(10 10 11 / 0.55);
+}
+
+@keyframes overlay-fade {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@utility overlay-fade {
+	animation: overlay-fade 150ms ease-out;
+}
