@@ -21,6 +21,10 @@ Built for the [Nerdearla 2026 Vibeathon](VIBEATHON.md). Licensed under
 - Optional extras: SRT/VTT/TXT export, technical glossary, OBS/vMix overlay,
   extra languages.
 
+![Audience caption view with live translated captions](docs/images/quickstart/audience-captions.png)
+
+![Admin dashboard monitoring sessions](docs/images/quickstart/admin-dashboard.png)
+
 ## How it works
 
 ```mermaid
