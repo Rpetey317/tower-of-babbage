@@ -27,7 +27,7 @@ func TestDefaults(t *testing.T) {
 	if len(cfg.InferenceURLs) != 1 || cfg.InferenceURLs[0] != "http://localhost:8080" {
 		t.Fatalf("unexpected inference URLs: %v", cfg.InferenceURLs)
 	}
-	if cfg.GeminiModel != "gemini-2.5-flash" {
+	if cfg.GeminiModel != "gemini-3.8-flash" {
 		t.Fatalf("unexpected default Gemini model: %q", cfg.GeminiModel)
 	}
 	if cfg.ChunkMin != 2*time.Second || cfg.ChunkTarget != 6*time.Second || cfg.ChunkMax != 15*time.Second {

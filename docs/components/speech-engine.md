@@ -60,7 +60,7 @@ x-goog-api-key: {GEMINI_API_KEY}
 
 The same ASR/AST/translate prompts are used; Gemini answers the AST format, so
 the interface's `TranscribeAndTranslate` applies. `GEMINI_MODEL` selects the
-model (default `gemini-2.5-flash`); `GEMINI_API_KEY` is required. In-flight
+model (default `gemini-3.8-flash`); `GEMINI_API_KEY` is required. In-flight
 calls are bounded by `INFERENCE_MAX_CONCURRENCY` and `INFERENCE_TIMEOUT_SECONDS`.
 
 Failures: transport errors, timeouts, HTTP 429 and 5xx get one retry. Three

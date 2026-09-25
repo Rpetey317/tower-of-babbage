@@ -277,7 +277,9 @@ func (r *Runner) run() {
 	}
 }
 
-// runSource owns the producer goroutine (ffmpeg for file_replay). An early
+// runSource owns the producer goroutine (ffmpeg for file_replay). A clean
+// exit (a non-looping file reaching its end) winds the run down like a stop
+// request: the buffered tail flushes and the run drains to idle. A non-zero
 // exit is an ffmpeg_exit error that puts the run in error (ingest.md).
 func (r *Runner) runSource(ctx context.Context) {
 	err := r.source(ctx, r)
@@ -286,6 +288,11 @@ func (r *Runner) runSource(ctx context.Context) {
 	}
 	var exited *ingest.ExitedError
 	if errors.As(err, &exited) {
+		if exited.ExitCode == 0 {
+			r.events.LogForRun(r.sessionID, r.req.RunID, "info", "ffmpeg_exit", exited.Error(), nil)
+			r.beginStop()
+			return
+		}
 		r.fail("error", "ffmpeg_exit", exited.Error())
 		return
 	}

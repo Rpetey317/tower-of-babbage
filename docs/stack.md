@@ -140,7 +140,7 @@ Pipeline (`services/pipeline/.env`):
 | `EVENTS_FLUSH_MS` | `250` | Batching window for the events endpoint |
 | `LOG_LEVEL` | `info` | slog level |
 | `GEMINI_API_KEY` | none, required for `PROVIDER=gemini` | Google AI Studio API key, sent as `x-goog-api-key` |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Model id in `generateContent` requests; `gemini-2.5-flash-lite` is the cheaper option |
+| `GEMINI_MODEL` | `gemini-3.8-flash` | Model id in `generateContent` requests; `gemini-3.5-flash-lite` is the cheaper option. The 2.5 generation is retired for new keys (404) |
 
 Compose-level (`infra/.env`, consumed by `infra/compose.yml` and mapped onto the variables above; also sourced by the native Windows PowerShell scripts via `infra/env.ps1`):
 

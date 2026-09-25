@@ -61,7 +61,7 @@ func Parse(lookup func(string) (string, bool)) (Config, error) {
 		InferenceAudioFormat: value("INFERENCE_AUDIO_FORMAT", "input_audio"),
 		FixturesDir:          value("FIXTURES_DIR", "../../fixtures/audio"),
 		GeminiAPIKey:         value("GEMINI_API_KEY", ""),
-		GeminiModel:          value("GEMINI_MODEL", "gemini-2.5-flash"),
+		GeminiModel:          value("GEMINI_MODEL", "gemini-3.8-flash"),
 	}
 
 	if err := validateListenAddr(config.ListenAddr); err != nil {
