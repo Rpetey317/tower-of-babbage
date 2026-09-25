@@ -5,12 +5,14 @@ import { useEffect, useReducer } from "react";
 import {
 	type CaptionSegment,
 	captionsReducer,
+	chunkSpeaker,
 	chunkText,
 	createCaptionsState,
 	type SessionStatus,
 	sortedChunks,
 } from "~/lib/captions";
 import type { OverlayParams } from "~/lib/overlay";
+import { speakerTextClass } from "~/lib/speakers";
 import { api } from "~/trpc/react";
 
 export interface OverlaySession {
@@ -75,11 +77,14 @@ export function OverlayView({
 				language: params.language,
 				sourceLanguage: session.sourceLanguage,
 			});
+			const speaker = chunkSpeaker(chunk);
+			const accent = speaker ? speakerTextClass(speaker) : undefined;
 			const entries: {
 				key: string;
 				text: string;
 				lang: string;
 				muted: boolean;
+				accent?: string;
 			}[] = [];
 			if (text.original !== undefined) {
 				entries.push({
@@ -87,6 +92,7 @@ export function OverlayView({
 					text: text.original,
 					lang: session.sourceLanguage,
 					muted: text.translation !== undefined,
+					accent,
 				});
 			}
 			if (text.translation !== undefined) {
@@ -95,6 +101,7 @@ export function OverlayView({
 					text: text.translation,
 					lang: params.language,
 					muted: false,
+					accent,
 				});
 			}
 			return entries;
@@ -131,7 +138,7 @@ export function OverlayView({
 				{lines.map((line) => (
 					<p
 						className={`overlay-outline ${
-							line.muted ? "text-ink-300" : ""
+							line.muted ? "text-ink-300" : (line.accent ?? "")
 						} ${params.fade ? "overlay-fade" : ""}`}
 						key={line.key}
 						lang={line.lang}

@@ -56,6 +56,7 @@ function rowToSegmentEvent(row: typeof segments.$inferSelect): SegmentEvent {
 		kind: row.kind,
 		language: row.language,
 		text: row.text,
+		speaker: row.speaker ?? undefined,
 		isFinal: row.isFinal,
 		startMs: row.startMs,
 		endMs: row.endMs,

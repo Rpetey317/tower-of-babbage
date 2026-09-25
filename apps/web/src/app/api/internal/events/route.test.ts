@@ -87,6 +87,8 @@ describe("POST /api/internal/events", () => {
 		const rows = await segmentRows();
 		expect(rows).toHaveLength(2);
 		expect(rows.map((r) => r.language).sort()).toEqual(["en", "es"]);
+		expect(rows.find((r) => r.language === "en")?.speaker).toBe("S1");
+		expect(rows.find((r) => r.language === "es")?.speaker).toBe("S1");
 
 		const [session] = await db
 			.select()
@@ -120,7 +122,7 @@ describe("POST /api/internal/events", () => {
 
 	it("rejects a malformed event with 400 and writes nothing", async () => {
 		const malformed = {
-			contractVersion: 1,
+			contractVersion: 2,
 			events: [
 				batch.events[0],
 				{ ...batch.events[1], text: undefined },
@@ -140,7 +142,7 @@ describe("POST /api/internal/events", () => {
 	});
 
 	it("rejects a contract version mismatch", async () => {
-		const response = await post({ ...batch, contractVersion: 2 });
+		const response = await post({ ...batch, contractVersion: 1 });
 		expect(response.status).toBe(400);
 		expect(await response.json()).toEqual({
 			error: "contract_version_mismatch",

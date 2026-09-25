@@ -17,6 +17,7 @@ export const en = {
 	connReconnecting: "Reconnecting…",
 	connNotLive: "Not live",
 	sessionRestarted: "Session restarted.",
+	speakerLabel: "Speaker {n}",
 	waitingForCaptions: "Waiting for captions…",
 	jumpToLive: "Jump to live",
 
