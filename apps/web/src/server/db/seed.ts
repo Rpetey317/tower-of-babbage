@@ -6,30 +6,8 @@
  * Run with `pnpm db:seed` after `make db-push`.
  */
 import { db } from "~/server/db";
+import { demoSessions } from "~/server/db/demo-sessions";
 import { sessions } from "~/server/db/schema";
-
-const demoSessions: (typeof sessions.$inferInsert)[] = [
-	{
-		slug: "demo-en",
-		title: "English replay demo",
-		room: "Sala A",
-		roomColor: "violet",
-		sourceLanguage: "en",
-		targetLanguages: ["es"],
-		sourceType: "file_replay",
-		sourceConfig: { path: "en-kubernetes-60s.wav", loop: false },
-	},
-	{
-		slug: "demo-es",
-		title: "Demo de repetición en español",
-		room: "Sala B",
-		roomColor: "cyan",
-		sourceLanguage: "es",
-		targetLanguages: ["en"],
-		sourceType: "file_replay",
-		sourceConfig: { path: "es-charla-60s.wav", loop: false },
-	},
-];
 
 async function main() {
 	const inserted = await db

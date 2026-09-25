@@ -112,7 +112,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M2-02** · web · L · deps M1-05, M1-03 · `todo`
   Monitoring dashboard at `/admin` per [admin-panel.md](components/admin-panel.md): columns and alarms, `admin.onStatus` live updates, `pipelineHealth`, `session_events` log on the session page.
   Done when: manual checklist in admin-panel.md passes with the mock provider, including `status_timeout` after killing the pipeline.
-- **M2-03** · web · M · deps M1-05 · `todo`
+- **M2-03** · web · M · deps M1-05 · `done`
   Complete session form: room color picker from the token set, source type with per-type config fields, translation mode, ordered target languages; "Create demo sessions" button on an empty dashboard.
   Done when: creating each source type persists the right `sourceConfig`; demo button seeds `demo-en` and `demo-es`.
 - **M2-04** · infra · M · deps M2-01, M1-14 · `todo`
