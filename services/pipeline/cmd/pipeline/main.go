@@ -57,7 +57,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		MaxConcurrency: cfg.InferenceMaxConcurrency,
 	}, speech, events, logger)
 	ingestWS := ingest.NewHandler(registry, cfg.SharedSecret, events, logger)
-	server := &http.Server{Handler: control.NewHandler(cfg, ingestWS), ReadHeaderTimeout: 5 * time.Second}
+	server := &http.Server{Handler: control.NewHandler(ctx, cfg, registry, ingestWS), ReadHeaderTimeout: 5 * time.Second}
 	serveDone := make(chan error, 1)
 	go func() { serveDone <- server.Serve(listener) }()
 	logger.Info("pipeline listening", "address", listener.Addr().String(), "provider", cfg.Provider)

@@ -85,7 +85,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
 - **M1-11** · pipeline · L · deps M1-07, M1-08, M1-09, M0-06 · `done`
   `internal/session` runner: start/stop lifecycle with `runId`, chunk queue with backpressure, provider workers honoring `translationMode` and the AST fallback, latency accounting, stats and 5 s status heartbeat; `internal/emit` batching client with retry and bounded buffer.
   Done when: runner test with the mock provider and a synthetic source emits segments in order with correct `startMs`/`endMs`, drops under a full queue with `chunk_dropped`, sends `status` at least every 5 s; emitter test retries and caps the buffer.
-- **M1-12** · pipeline · S · deps M1-11 · `todo`
+- **M1-12** · pipeline · S · deps M1-11 · `done`
   Control API `start`, `stop`, `GET /v1/sessions` wired to the runner, validation errors `unsupported_language` and `invalid_source`, `409 already_running`.
   Done when: handler tests cover the responses in contract section 2.
 - **M1-13** · infra · M · deps M1-03, M1-05, M1-12 · `todo`
