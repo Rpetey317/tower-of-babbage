@@ -82,7 +82,7 @@ M0-02 -> M1-01 -> M1-02 -> M1-03 -> M1-04 on the web side.
   Local path only; not required for the Gemini demo.
   `openaicompat` provider: request building for `input_audio` and `audio_url`, `chat_template_kwargs.enable_thinking=false`, endpoints with round-robin and per-endpoint semaphore, health marking and probing, single retry policy.
   Done when: `httptest` tests assert request bodies for both formats, retry on 5xx, unhealthy marking after 3 failures, recovery after probe.
-- **M1-11** · pipeline · L · deps M1-07, M1-08, M1-09, M0-06 · `todo`
+- **M1-11** · pipeline · L · deps M1-07, M1-08, M1-09, M0-06 · `done`
   `internal/session` runner: start/stop lifecycle with `runId`, chunk queue with backpressure, provider workers honoring `translationMode` and the AST fallback, latency accounting, stats and 5 s status heartbeat; `internal/emit` batching client with retry and bounded buffer.
   Done when: runner test with the mock provider and a synthetic source emits segments in order with correct `startMs`/`endMs`, drops under a full queue with `chunk_dropped`, sends `status` at least every 5 s; emitter test retries and caps the buffer.
 - **M1-12** · pipeline · S · deps M1-11 · `todo`
